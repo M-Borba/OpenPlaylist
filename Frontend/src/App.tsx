@@ -1,7 +1,6 @@
-import { useState } from 'react'
 import youtubeLogo from '/public/youtube_logo.svg'
 import spotifyLogo from '/public/spotify_logo.svg'
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 
 import './App.css'
