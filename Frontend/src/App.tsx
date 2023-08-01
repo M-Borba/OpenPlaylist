@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import youtubeLogo from '/public/youtube_logo.svg'
 import spotifyLogo from '/public/spotify_logo.svg'
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 
 import './App.css'
@@ -36,7 +37,7 @@ function App() {
         </p>
       </div>
       <p className="light-text">
-        Created by Martín Borba
+        Created by  <Link to="m-borba">Martín Borba </Link>
       </p>
     </>
   )

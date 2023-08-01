@@ -1,0 +1,20 @@
+.video {
+  position: absolute;
+  top: 0; 
+  left: 0;
+}
+
+.game-container{
+  position: relative;
+  width: '640px';
+  height: '480px';
+  transform: scaleX(-1); /* Apply horizontal mirroring */
+
+}
+
+
+.canvas {
+  position: absolute;
+  top: 0; 
+  left: 0;
+}  
