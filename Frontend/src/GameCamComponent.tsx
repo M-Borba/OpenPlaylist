@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { useRef, useEffect,useState } from 'react';
 import '@mediapipe/face_mesh';
 import '@tensorflow/tfjs-core';
@@ -7,28 +6,31 @@ import '@tensorflow/tfjs-backend-webgl';
 import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
 import './GameCamComponent.css'
 
-  const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
-  const detectorConfig = {
-    runtime: 'mediapipe', // or 'tfjs'
-    solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh',
-  }
-  const detector = await faceLandmarksDetection.createDetector(model, detectorConfig);
+
+ 
 
 
 type WebcamState = 'notStarted' | 'settingUp' | 'setUpDone';
 
 const GameCamComponent = () =>  {
 
-  const videoRef:any = useRef();
-  const canvasRef = useRef();
+  const videoRef= useRef<any>();
+  const canvasRef = useRef<any>();
+  const [detector,setDetector] = useState<any>(null);
 
   const [webcamSetup, setWebcamSetup] = useState<WebcamState>('notStarted');
 
-  const [isMouthOpen, setIsMouthOpen] = useState(false);
+  // const [isMouthOpen, setIsMouthOpen] = useState(false);
   const [detectionInterval, setDetectionInterval]:any = useState(null);
 
   console.log("videoRef   ",videoRef.current)
 
+
+  // const checkIfMouthOpen = (mouthLandmarks: any) =>{
+  //   console.log(mouthLandmarks)
+  //   setIsMouthOpen(true)// todo change
+  //   return false
+  // }
   const startGameLoop = () => {
     
 
@@ -44,6 +46,14 @@ const GameCamComponent = () =>  {
         videoRef.current.srcObject = mediaStream;
         videoRef.current.play();
         setWebcamSetup('setUpDone')
+        const model:any = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
+        const detectorConfig:any = {
+        runtime: 'mediapipe', // or 'tfjs'
+        solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh',
+        }
+        setDetector(await faceLandmarksDetection.createDetector(model, detectorConfig));
+
+
       } catch (error) {
         console.error('Error accessing webcam:', error);
       }
@@ -108,7 +118,7 @@ const GameCamComponent = () =>  {
             <video ref={videoRef} width="640" height="480" className="video" />
             <canvas ref={canvasRef} width="640" height="480" className="canvas" />
           </div>
-    <p>  {isMouthOpen ? 'Mouth is open': 'Mouth is closed'} </p> 
+    {/* <p>  {isMouthOpen ? 'Mouth is open': 'Mouth is closed'} </p>  */}
     <button onClick={startGameLoop}>Play ▶</button>
     </div>
   );

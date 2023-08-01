@@ -1,15 +1,10 @@
 
-import { useRef, useState, useEffect } from 'react';
 
-
-import './Mborba.css'
+import './MBorba.css'
 import GameCamComponent from './GameCamComponent';
 
 
-
 function MBorba() {
-
-
   return (
     <div>
       <h1>Martín Borba </h1>
@@ -21,17 +16,11 @@ function MBorba() {
         </p>
       </div>
       <GameCamComponent /> 
-      
-    
-
     </div>
   )
 }
 
 export default MBorba
 
-function isMouthOpen(mouthLandmarks: any) {
-  console.log(mouthLandmarks)
-  return false
-}
+
 
