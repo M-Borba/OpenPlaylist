@@ -7,23 +7,57 @@ import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detec
 import './GameCamComponent.css'
 
 
- 
-
-
 type WebcamState = 'notStarted' | 'settingUp' | 'setUpDone';
 
-const GameCamComponent = () =>  {
+interface Point {
+  x: number;
+  y: number; 
+}
+interface Food extends Point {
+  char?:string;
+}
 
+const junkFoods=['🍔','🍕','🍟']
+// const healthyFoods = ['🍎','🥦','🥕']
+// const specialFood = ['🌶️']
+
+interface BoundingBox {
+  xymin: Point;
+  xymax: Point;
+}
+
+const gameVelocity = 200;
+
+function checkCollision(box1: BoundingBox, box2: BoundingBox): boolean {
+  const horizontalCollision = box1.xymin.x <= box2.xymax.x && box1.xymax.x >= box2.xymin.x;
+  const verticalCollision = box1.xymin.y <= box2.xymax.y && box1.xymax.y >= box2.xymin.y;
+  const collision2d = horizontalCollision && verticalCollision
+  return collision2d;
+}
+
+function distance(a: Food, b: Food): number {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.sqrt(dx ** 2 + dy ** 2); //euclideanDist
+}
+
+function randomIntFromInterval(min: number, max: number) { // min and max included 
+  return Math.floor(Math.random() * (max - min + 1) + min)
+}
+
+const GameCamComponent = () =>  {
   const videoRef= useRef<any>();
   const canvasRef = useRef<any>();
-  const [detector,setDetector] = useState<any>(null);
 
-  const [webcamSetup, setWebcamSetup] = useState<WebcamState>('notStarted');
+  const [modelSetup, setModelSetup] = useState<WebcamState>('notStarted');
+  // const [showMetadata, setShowMetadata] = useState<boolean>(true);
 
-  // const [isMouthOpen, setIsMouthOpen] = useState(false);
-  const [detectionInterval, setDetectionInterval]:any = useState(null);
-
-  console.log("videoRef   ",videoRef.current)
+  const [isMouthOpen, setIsMouthOpen] = useState(false);
+  const detectionInterval =  useRef<any>();
+  const [junkFood, setJunkFood]:any = useState([]);
+  const [healthyFood, setHealthyFood]:any = useState([]);
+  // const gameState = useRef<any>({time:0  });
+  const [detector, setDetector]:any = useState();
 
 
   // const checkIfMouthOpen = (mouthLandmarks: any) =>{
@@ -31,12 +65,156 @@ const GameCamComponent = () =>  {
   //   setIsMouthOpen(true)// todo change
   //   return false
   // }
-  const startGameLoop = () => {
-    
 
+  const addRandomJunkFood = () =>{
+    const canvas:any = canvasRef.current;
+    const rndX = randomIntFromInterval(10, canvas.width-10)
+    const rndY = randomIntFromInterval(0, 10)
+    const newJunkFoodList = [...junkFood, {x:rndX,y:rndY,char:junkFoods[ randomIntFromInterval(0, junkFood.length-1) ]}]
+    setJunkFood(newJunkFoodList);
+    clearInterval(detectionInterval.current);
+    const newInterval = setInterval(()=>gameLoop(detector,newJunkFoodList), gameVelocity); // 1000 ms = 1 second
+    detectionInterval.current = newInterval;
+  }
+  // const addRandomHealthyFood = () =>{
+  //   const canvas:any = canvasRef.current;
+  //   const rndX = randomIntFromInterval(10, canvas.width-10)
+  //   const rndY = randomIntFromInterval(0, 10)
+  //   const newHealtyList = [...healthyFood, {x:rndX,y:rndY}]
+  //   setHealthyFood(newHealtyList);
+  //   clearInterval(detectionInterval.current);
+  //   const newInterval = setInterval(()=>gameLoop(detector,junkFood), gameVelocity); // 1000 ms = 1 second
+  //   detectionInterval.current = newInterval;
+  // }
+
+  const gameLoop = (detector:any,junkFood:Food[]) => {
+        console.log(junkFood.length)
+        // Perform the facial landmark detection
+          if (detector?.estimateFaces) detector.estimateFaces(videoRef.current).then((result: any) => {
+            const canvas:any = canvasRef.current;
+            const canvasContext = canvas.getContext('2d');
+          if(result[0]){             
+            // if(showMetadata){
+              const faceBox = result[0].box // consider only first face detected
+              canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+              canvasContext.strokeStyle = 'red';
+              canvasContext.lineWidth = 2;
+              canvasContext.beginPath();
+              canvasContext.rect(faceBox.xMin, faceBox.yMin, faceBox.width, faceBox.height);
+              canvasContext.stroke();
+
+              const lipTop = result[0].keypoints[0]
+              const lipBottom = result[0].keypoints[17]
+              const lipRight = result[0].keypoints[61]
+              const lipLeft = result[0].keypoints[409] // Had to take a big look to know the indexes i wanted, couldn't found documentation for it
+              const faceWidth = faceBox.width
+              // const lips = result[0].keypoints.filter((keypoint:any,index:number) =>keypoint?.name == 'lips') 
+              // see all lip positions
+              // canvasContext.beginPath();
+              // lips.forEach((lipPos: { x: any; y: any; }) =>{
+              //   canvasContext.arc(lipPos.x, lipPos.y, 3, 0, 2 * Math.PI);
+              // });
+              // canvasContext.stroke();
+
+              canvasContext.beginPath();
+              canvasContext.arc(lipTop.x, lipTop.y, 3, 0, 2 * Math.PI); // top
+              canvasContext.fill();
+
+              canvasContext.arc(lipBottom.x, lipBottom.y, 3, 0, 2 * Math.PI); // bottom
+              canvasContext.fill();
+
+              canvasContext.beginPath();
+              canvasContext.arc(lipRight.x, lipRight.y, 3, 0, 2 * Math.PI);// right
+              canvasContext.fill();
+
+              canvasContext.beginPath();
+              canvasContext.arc(lipLeft.x, lipLeft.y, 3, 0, 2 * Math.PI); // left
+              canvasContext.fill();
+
+              canvasContext.beginPath()
+              canvasContext.globalAlpha = 0.5
+              canvasContext.fillStyle ='#FF0000'
+              canvasContext.lineTo(lipTop.x, lipTop.y );
+              canvasContext.lineTo(lipRight.x, lipRight.y);
+              canvasContext.lineTo(lipBottom.x, lipBottom.y );
+              canvasContext.lineTo(lipLeft.x, lipLeft.y);
+              canvasContext.fill();
+              canvasContext.globalAlpha = 1
+            // } metadata
+              const horizontalLine = distance(lipRight,lipLeft)
+              const verticalLine = distance(lipTop,lipBottom)
+
+              const xyRatio =  verticalLine/horizontalLine
+              const mouthFaceRatio = horizontalLine / faceWidth;
+              const mouthOpen = xyRatio > 0.45 && mouthFaceRatio > 0.34  ? true : false
+              console.log('Ratios:',xyRatio,mouthFaceRatio)
+            setIsMouthOpen(mouthOpen)
+            drawAndUpdateFoods(lipRight,lipLeft,lipTop,lipBottom,mouthOpen)
+          }else {
+            const canvasContext = canvas.getContext('2d');
+            canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+            const nullPoint={x:0,y:0}
+            drawAndUpdateFoods(nullPoint,nullPoint,nullPoint,nullPoint,false); // no mouth detected
+          }
+
+
+        });
+      }
+
+  const drawAndUpdateFoods = (lipRight:Point,lipLeft:Point,lipTop:Point,lipBottom:Point,mouthOpen:boolean) => {   // todo take a picture of player when eating and show it at the end
+    console.log("junkfoods",junkFood.length)
+
+    const canvas:any = canvasRef.current;
+    const contex = canvas.getContext("2d");
+
+    junkFood.forEach((food:Food)=>{
+      contex.font = '50px serif'
+      contex.fillText(food.char, food.x , food.y)
+
+      contex.beginPath();
+      contex.arc(food.x, food.y-50, 5, 0, 2 * Math.PI); // left
+      contex.fill();
+
+
+      contex.beginPath();
+      contex.arc(food.x+50, food.y, 5, 0, 2 * Math.PI); // left
+      contex.fill();
+
+      food.y=food.y+10
+      
+
+    })
+
+    //clear food that already fell away
+    //        {xymin:{x:lipRight.x , y:lipTop.y}, xymax:{x:lipLeft.x , y:lipBottom.y}}, // lips
+    const filteredJunkFood=   junkFood.filter((food: Food) => {
+      const margin = 5;
+      const collidesWithLips = checkCollision(
+        { xymin: { x: lipRight.x, y: lipTop.y }, xymax: { x: lipLeft.x, y: lipBottom.y } }, // lips
+        { xymin: { x: food.x - margin, y: food.y - margin }, xymax: { x: food.x + 50 + margin, y: food.y + margin } } // food
+      );
+
+      console.log(collidesWithLips && mouthOpen);
+
+      if (food.y + 10 < canvas.height) return false;
+      if (collidesWithLips && mouthOpen) {
+        return false;
+      } else {
+        return true;
+      }
+    })
+
+    setJunkFood(filteredJunkFood);
+    const filteredHealtyFood =healthyFood .filter((food:Food)=>food.y+10 < canvas.height)
+    setHealthyFood(filteredHealtyFood);
+    
+    clearInterval(detectionInterval.current)
+    const newInterval = setInterval(()=>gameLoop(detector,filteredJunkFood), gameVelocity); // 1000 ms = 1 second
+    detectionInterval.current = newInterval;
   }
 
   useEffect(() => {
+
     // Function to access the user's webcam and render the feed in the video element
     let mediaStream: MediaStream;
 
@@ -44,15 +222,23 @@ const GameCamComponent = () =>  {
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
         videoRef.current.srcObject = mediaStream;
-        videoRef.current.play();
-        setWebcamSetup('setUpDone')
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current.play().catch((error: any) => {
+            console.error('Error playing video:', error);
+          });
+        };
         const model:any = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
         const detectorConfig:any = {
-        runtime: 'mediapipe', // or 'tfjs'
+        runtime: 'tfjs', // or 'tfjs'
         solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh',
         }
-        setDetector(await faceLandmarksDetection.createDetector(model, detectorConfig));
-
+        const detector = await faceLandmarksDetection.createDetector(model, detectorConfig).then((det:any)=>{
+          setDetector(det);
+        })
+        setModelSetup('setUpDone')
+  
+        const interval = setInterval(()=>gameLoop(detector,[]), gameVelocity); // 1000 ms = 1 second
+        detectionInterval.current = interval;
 
       } catch (error) {
         console.error('Error accessing webcam:', error);
@@ -60,68 +246,44 @@ const GameCamComponent = () =>  {
     };
 
     // Check if webcam setup is done before calling setupWebcam
-    if (webcamSetup=='notStarted') {
-      setWebcamSetup('settingUp')
+    if (modelSetup=='notStarted') {
+      setModelSetup('settingUp')
       setupWebcam();
     }
     
-    if (webcamSetup=='setUpDone') {
-    const interval = setInterval(() => {
-      // Perform the facial landmark detection
-      detector.estimateFaces(videoRef.current).then((result: any) => {
-        console.log("result",result)
-        if(result[0]){ 
-          // Draw bounding box
-          const video = videoRef.current;
-          const canvas:any = canvasRef.current;
-          const ctx = canvas.getContext('2d');
-
-          // Set canvas size to match the video size
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          
-          // Draw the box on the canvas
-          const faceBox = result[0].box // consider only first face detected
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.strokeStyle = 'red';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.rect(faceBox.xMin, faceBox.yMin, faceBox.width, faceBox.height);
-          ctx.stroke();
-        }else {
-          console.log("face not detected")
-        }
-
-      });
-    }, 500); // 1000 ms = 1 second
-
-    setDetectionInterval(interval);
-    }else{
-      console.log('Webcam setup not done')
-    }
-
 
      return () => {
         if (mediaStream instanceof MediaStream) {
           mediaStream.getTracks().forEach((track) => track.stop());
         }
-        clearInterval(detectionInterval);
+        clearInterval(detectionInterval.current);
 
       };
    
-  }, [webcamSetup]);
+  }, []);
+
 
   return (
-    <div>
-      <h2>Eat all you can challenge</h2>
-          <div className="game-container">
+    <div className="game-container">
+      <h2>😋 🍔🍕🍟 Picky eater game 🤮 🍎🥦🥕</h2>
+          {modelSetup !== 'setUpDone' &&  (
+          <>
+            <div className="loader"/>
+            <p>Loading model</p>
+          </>
+          )}
+          <div className="display-container">
             <video ref={videoRef} width="640" height="480" className="video" />
             <canvas ref={canvasRef} width="640" height="480" className="canvas" />
           </div>
-    {/* <p>  {isMouthOpen ? 'Mouth is open': 'Mouth is closed'} </p>  */}
-    <button onClick={startGameLoop}>Play ▶</button>
+    <p>  {isMouthOpen ? 'Mouth is open': 'Mouth is closed'} </p> 
+    <button onClick={()=>addRandomJunkFood()}>Play ▶</button>
+    {/* <button onClick={()=>setShowMetadata(!showMetadata)}> { showMetadata ? 'Hide Metadata':'Show Metadata' } </button> */}
     </div>
   );
 };
 
 export default GameCamComponent;
+
+
+

@@ -4,17 +4,40 @@
   left: 0;
 }
 
-.game-container{
+.display-container{
   position: relative;
-  width: '640px';
-  height: '480px';
+  width: 640px;
+  height: 480px;
   transform: scaleX(-1); /* Apply horizontal mirroring */
-
+  align-self: center;
 }
-
+.game-container{
+  display: flex;
+  height:100%;
+  flex-direction: column;
+}
 
 .canvas {
   position: absolute;
   top: 0; 
   left: 0;
 }  
+
+.loader {
+  align-self: center;
+  border: 10px solid #f3f3f3;
+  border-top: 10px solid #3498db;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

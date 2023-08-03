@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import './App.css'
 
 function App() {
-
+ //TODO CONSIDER ADDING PAYED ADDS https://adsense.google.com/start/?subid=uy-en-ha-ads-bk-a-search!o3
   return (
     <>
       <div>
