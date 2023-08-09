@@ -1,4 +1,4 @@
-import { useRef, useEffect,useState } from 'react';
+import { useRef, useEffect,useState, MutableRefObject } from 'react';
 import '@mediapipe/face_mesh';
 import '@tensorflow/tfjs-core';
 // Register WebGL backend.
@@ -17,7 +17,7 @@ interface Food extends Point {
   char?:string;
 }
 
-const junkFoods=['🍔','🍕','🍟']
+const junkFoodList=['🍔','🍕','🍟']
 // const healthyFoods = ['🍎','🥦','🥕']
 // const specialFood = ['🌶️']
 
@@ -26,7 +26,7 @@ interface BoundingBox {
   xymax: Point;
 }
 
-const gameVelocity = 200;
+const gameVelocity = 500;
 
 function checkCollision(box1: BoundingBox, box2: BoundingBox): boolean {
   const horizontalCollision = box1.xymin.x <= box2.xymax.x && box1.xymax.x >= box2.xymin.x;
@@ -41,6 +41,20 @@ function distance(a: Food, b: Food): number {
   return Math.sqrt(dx ** 2 + dy ** 2); //euclideanDist
 }
 
+interface GameState{ 
+  junkFood:any[]
+  healthyFood:any[]
+  showLandMarks:boolean
+  playing:boolean
+}
+
+interface GameScore { 
+  junkEaten:number
+  healthyEaten:number
+  junkOnFloor:number
+  healthyOnFloor:number
+}
+
 function randomIntFromInterval(min: number, max: number) { // min and max included 
   return Math.floor(Math.random() * (max - min + 1) + min)
 }
@@ -50,14 +64,19 @@ const GameCamComponent = () =>  {
   const canvasRef = useRef<any>();
 
   const [modelSetup, setModelSetup] = useState<WebcamState>('notStarted');
+  const [gameScore, setGameScore] = useState<GameScore>({junkEaten:0,healthyEaten:0,junkOnFloor:0, healthyOnFloor:0});
+
   // const [showMetadata, setShowMetadata] = useState<boolean>(true);
 
   const [isMouthOpen, setIsMouthOpen] = useState(false);
   const detectionInterval =  useRef<any>();
-  const [junkFood, setJunkFood]:any = useState([]);
-  const [healthyFood, setHealthyFood]:any = useState([]);
-  // const gameState = useRef<any>({time:0  });
-  const [detector, setDetector]:any = useState();
+  const gameState = useRef<GameState>({healthyFood:[],junkFood:[],showLandMarks:false,playing:false});
+  // const [junkFood, setJunkFood]:any = useState([]);
+  // const [healthyFood, setHealthyFood]:any = useState([]);
+
+
+  // const [gamePlaying, setGamePlaying] = useState<boolean>(false);
+  const detector:any = useRef<any>();
 
 
   // const checkIfMouthOpen = (mouthLandmarks: any) =>{
@@ -68,14 +87,12 @@ const GameCamComponent = () =>  {
 
   const addRandomJunkFood = () =>{
     const canvas:any = canvasRef.current;
-    const rndX = randomIntFromInterval(10, canvas.width-10)
-    const rndY = randomIntFromInterval(0, 10)
-    const newJunkFoodList = [...junkFood, {x:rndX,y:rndY,char:junkFoods[ randomIntFromInterval(0, junkFood.length-1) ]}]
-    setJunkFood(newJunkFoodList);
-    clearInterval(detectionInterval.current);
-    const newInterval = setInterval(()=>gameLoop(detector,newJunkFoodList), gameVelocity); // 1000 ms = 1 second
-    detectionInterval.current = newInterval;
+    const rndX = randomIntFromInterval(10, canvas.width-10);
+    const rndY = randomIntFromInterval(0, 10);
+    gameState.current.junkFood.push({x: rndX, y: rndY, char: junkFoodList[randomIntFromInterval(0, junkFoodList.length - 1)]});
+
   }
+  
   // const addRandomHealthyFood = () =>{
   //   const canvas:any = canvasRef.current;
   //   const rndX = randomIntFromInterval(10, canvas.width-10)
@@ -86,11 +103,72 @@ const GameCamComponent = () =>  {
   //   const newInterval = setInterval(()=>gameLoop(detector,junkFood), gameVelocity); // 1000 ms = 1 second
   //   detectionInterval.current = newInterval;
   // }
+  const drawAndUpdateFoods = (lipRight:Point,lipLeft:Point,lipTop:Point,lipBottom:Point,mouthOpen:boolean) => {   // todo take a picture of player when eating and show it at the end
 
-  const gameLoop = (detector:any,junkFood:Food[]) => {
-        console.log(junkFood.length)
+    const canvas:any = canvasRef.current;
+    const contex = canvas.getContext("2d");
+
+    gameState.current.junkFood.forEach((food:Food)=>{
+      contex.font = '50px serif'
+      contex.fillText(food.char, food.x , food.y)
+
+      // contex.beginPath();
+      // contex.arc(food.x, food.y-50, 5, 0, 2 * Math.PI); 
+      // contex.fill();
+
+
+      // contex.beginPath();
+      // contex.arc(food.x+50, food.y, 5, 0, 2 * Math.PI); 
+      
+      // contex.fill();
+      contex.strokeStyle = 'green';
+      contex.lineWidth = 2;
+      contex.beginPath();
+      contex.rect(food.x, food.y, 50, 50);
+      contex.stroke();
+
+      food.y=food.y+10
+      
+    })
+
+    //clear food that already fell away
+    //        {xymin:{x:lipRight.x , y:lipTop.y}, xymax:{x:lipLeft.x , y:lipBottom.y}}, // lips
+    const filteredJunkFood=   gameState.current.junkFood.filter((food: Food) => {
+      const collidesWithLips = checkCollision(
+        { xymin: { x: lipRight.x, y: lipTop.y }, xymax: { x: lipLeft.x, y: lipBottom.y } }, // lips
+        { xymin: { x: food.x , y: food.y - 50 }, xymax: { x: food.x + 50 , y: food.y  } } // food
+      );
+
+      const eatingFood = collidesWithLips && mouthOpen
+      const foodOutOfBounds =food.y + 5 > canvas.height
+
+      if (foodOutOfBounds){
+        setGameScore((prevState:GameScore) => ({...prevState,junkOnFloor: prevState.junkOnFloor+1}))
+        return false;
+      }
+      if (eatingFood) { 
+        setGameScore((prevState:GameScore) => ({...prevState,junkEaten: prevState.junkEaten+1}))
+        return false;
+      } 
+      
+      return true; // no event happened
+      
+    })
+
+    gameState.current.junkFood = filteredJunkFood
+
+
+    const filteredHealtyFood = gameState.current.healthyFood.filter((food:Food)=>food.y+10 < canvas.height)
+    gameState.current.healthyFood = filteredHealtyFood
+    
+    // clearInterval(detectionInterval.current)
+    // const newInterval = setInterval(()=>gameLoop(), gameVelocity); // 1000 ms = 1 second
+    // detectionInterval.current = newInterval;
+  }
+
+  const gameLoop = () => {
         // Perform the facial landmark detection
-          if (detector?.estimateFaces) detector.estimateFaces(videoRef.current).then((result: any) => {
+          if (detector.current?.estimateFaces) detector.current.estimateFaces(videoRef.current).then((result: any) => {
             const canvas:any = canvasRef.current;
             const canvasContext = canvas.getContext('2d');
           if(result[0]){             
@@ -147,7 +225,8 @@ const GameCamComponent = () =>  {
               const xyRatio =  verticalLine/horizontalLine
               const mouthFaceRatio = horizontalLine / faceWidth;
               const mouthOpen = xyRatio > 0.45 && mouthFaceRatio > 0.34  ? true : false
-              console.log('Ratios:',xyRatio,mouthFaceRatio)
+              // these ratios are made with my own face, it might work a little bit off with other faces, but for the most part it works
+              // console.log('xyRatio:',xyRatio > 0.45,"mouthFaceRatio", mouthFaceRatio > 0.32,mouthFaceRatio )
             setIsMouthOpen(mouthOpen)
             drawAndUpdateFoods(lipRight,lipLeft,lipTop,lipBottom,mouthOpen)
           }else {
@@ -161,57 +240,7 @@ const GameCamComponent = () =>  {
         });
       }
 
-  const drawAndUpdateFoods = (lipRight:Point,lipLeft:Point,lipTop:Point,lipBottom:Point,mouthOpen:boolean) => {   // todo take a picture of player when eating and show it at the end
-    console.log("junkfoods",junkFood.length)
-
-    const canvas:any = canvasRef.current;
-    const contex = canvas.getContext("2d");
-
-    junkFood.forEach((food:Food)=>{
-      contex.font = '50px serif'
-      contex.fillText(food.char, food.x , food.y)
-
-      contex.beginPath();
-      contex.arc(food.x, food.y-50, 5, 0, 2 * Math.PI); // left
-      contex.fill();
-
-
-      contex.beginPath();
-      contex.arc(food.x+50, food.y, 5, 0, 2 * Math.PI); // left
-      contex.fill();
-
-      food.y=food.y+10
-      
-
-    })
-
-    //clear food that already fell away
-    //        {xymin:{x:lipRight.x , y:lipTop.y}, xymax:{x:lipLeft.x , y:lipBottom.y}}, // lips
-    const filteredJunkFood=   junkFood.filter((food: Food) => {
-      const margin = 5;
-      const collidesWithLips = checkCollision(
-        { xymin: { x: lipRight.x, y: lipTop.y }, xymax: { x: lipLeft.x, y: lipBottom.y } }, // lips
-        { xymin: { x: food.x - margin, y: food.y - margin }, xymax: { x: food.x + 50 + margin, y: food.y + margin } } // food
-      );
-
-      console.log(collidesWithLips && mouthOpen);
-
-      if (food.y + 10 < canvas.height) return false;
-      if (collidesWithLips && mouthOpen) {
-        return false;
-      } else {
-        return true;
-      }
-    })
-
-    setJunkFood(filteredJunkFood);
-    const filteredHealtyFood =healthyFood .filter((food:Food)=>food.y+10 < canvas.height)
-    setHealthyFood(filteredHealtyFood);
-    
-    clearInterval(detectionInterval.current)
-    const newInterval = setInterval(()=>gameLoop(detector,filteredJunkFood), gameVelocity); // 1000 ms = 1 second
-    detectionInterval.current = newInterval;
-  }
+  
 
   useEffect(() => {
 
@@ -232,12 +261,12 @@ const GameCamComponent = () =>  {
         runtime: 'tfjs', // or 'tfjs'
         solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh',
         }
-        const detector = await faceLandmarksDetection.createDetector(model, detectorConfig).then((det:any)=>{
-          setDetector(det);
+        await faceLandmarksDetection.createDetector(model, detectorConfig).then((det:any)=>{
+          detector.current=det
         })
         setModelSetup('setUpDone')
   
-        const interval = setInterval(()=>gameLoop(detector,[]), gameVelocity); // 1000 ms = 1 second
+        const interval = setInterval(()=>gameLoop(), gameVelocity); // 1000 ms = 1 second
         detectionInterval.current = interval;
 
       } catch (error) {
@@ -265,7 +294,7 @@ const GameCamComponent = () =>  {
 
   return (
     <div className="game-container">
-      <h2>😋 🍔🍕🍟 Picky eater game 🤮 🍎🥦🥕</h2>
+      <h2>🍔 🍕 🍟 😋 Picky eater game 🤮 🍎 🥦 🥕</h2>
           {modelSetup !== 'setUpDone' &&  (
           <>
             <div className="loader"/>
@@ -277,6 +306,8 @@ const GameCamComponent = () =>  {
             <canvas ref={canvasRef} width="640" height="480" className="canvas" />
           </div>
     <p>  {isMouthOpen ? 'Mouth is open': 'Mouth is closed'} </p> 
+    <p>  Score: {gameScore.junkEaten} junk food eaten, {gameScore.junkOnFloor} fell on the floor  </p> 
+
     <button onClick={()=>addRandomJunkFood()}>Play ▶</button>
     {/* <button onClick={()=>setShowMetadata(!showMetadata)}> { showMetadata ? 'Hide Metadata':'Show Metadata' } </button> */}
     </div>
@@ -286,4 +317,8 @@ const GameCamComponent = () =>  {
 export default GameCamComponent;
 
 
+
+function newJunkFoodList(newJunkFoodList: any) {
+  throw new Error('Function not implemented.');
+}
 
