@@ -11,9 +11,14 @@ function MBorba() {
       <div className="card">
           System Analist
 
-        <p className="light-text">
-         Advanced student of computer engineering and also fullstack developer really interested in AI, my thesis is about object detection, here is a game demo
+        <p>
+         Advanced computer engineering student and also Fullstack developer with a strong interest in AI, my thesis is about object detection.  
         </p>
+        <p className="light-text">
+          Here is a simple game demo implemented using pre-trained 
+           <a href="https://github.com/tensorflow/tfjs-models/blob/master/face-landmarks-detection/README.md"> face mesh model</a> from tensorflow.js, eat as much as you can under 30 seconds! 
+        </p>
+        <p className="light-text">Open your mouth to eat the falling food, and always face the camera forward for better detection</p>
       </div>
       <GameCamComponent /> 
     </div>
