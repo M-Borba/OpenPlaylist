@@ -19,15 +19,14 @@ function App() {
       </div>
       <h1>Open Playlist</h1>
       <div className="card">
-        <Link to="youtube-to-spotify">
+        <Link to="export-playlist/spotify">
         <button >
-          
           Move from youtube to spotify
         </button>
         </Link>
 
-          <Link to="spotify-to-youtube">
-                    <button >
+        <Link to="export-playlist/youtube">
+          <button >
           Move from spotify to youtube
         </button>
           </Link>

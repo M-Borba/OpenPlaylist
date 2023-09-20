@@ -1,7 +1,7 @@
 
 
 import './MBorba.css'
-import GameCamComponent from './GameCamComponent';
+import GameCamComponent from '../../Components/GameCam/GameCam.tsx';
 
 
 function MBorba() {

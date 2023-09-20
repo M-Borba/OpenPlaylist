@@ -4,27 +4,15 @@ import '@tensorflow/tfjs-core';
 // Register WebGL backend.
 import '@tensorflow/tfjs-backend-webgl';
 import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
-import './GameCamComponent.css'
+import './GameCam.css'
+import { WebcamState, GameScore, GameState, Point, Food, checkCollision, distance, drawFood } from './gameCamUtils';
 
 
-type WebcamState = 'notStarted' | 'settingUp' | 'setUpDone';
 
-interface Point {
-  x: number;
-  y: number; 
-}
-interface Food extends Point {
-  char?:string;
-}
 
 const junkFoodList=['🍔','🍕','🍟']
 // const healthyFoods = ['🍎','🥦','🥕']
 // const specialFood = ['🌶️']
-
-interface BoundingBox {
-  xymin: Point;
-  xymax: Point;
-}
 
 const gameVelocity = 200;
 const foodWidth =50
@@ -32,34 +20,6 @@ const gameTime= 40000
 const initialGameState={healthyFood:[],junkFood:[],showLandMarks:false,time:-1,capturedImage:""};
 const initialGameScore = {junkEaten:0,healthyEaten:0,junkOnFloor:0, healthyOnFloor:0}
 
-
-function checkCollision(box1: BoundingBox, box2: BoundingBox): boolean {
-  const horizontalCollision = box1.xymin.x <= box2.xymax.x && box1.xymax.x >= box2.xymin.x;
-  const verticalCollision = box1.xymin.y <= box2.xymax.y && box1.xymax.y >= box2.xymin.y;
-  const collision2d = horizontalCollision && verticalCollision
-  return collision2d;
-}
-
-function distance(a: Food, b: Food): number {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  return Math.sqrt(dx ** 2 + dy ** 2); //euclideanDist
-}
-
-interface GameState{ 
-  junkFood:any[]
-  healthyFood:any[]
-  showLandMarks:boolean
-  time:number
-  capturedImage:string
-}
-
-interface GameScore { 
-  junkEaten:number
-  healthyEaten:number
-  junkOnFloor:number
-  healthyOnFloor:number
-}
 
 function randomIntFromInterval(min: number, max: number) { // min and max included 
   return Math.floor(Math.random() * (max - min + 1) + min)
@@ -82,7 +42,15 @@ const GameCamComponent = () =>  {
     const rndX = randomIntFromInterval(10, canvas.width-10);
     const rndY = randomIntFromInterval(0, 10);
     gameState.current.junkFood.push({x: rndX, y: rndY, char: junkFoodList[randomIntFromInterval(0, junkFoodList.length - 1)]});
+  }
 
+
+  const startGame = () =>{
+    if(gameState.current.time==-1){
+      setGameScore(initialGameScore)
+      gameState.current=initialGameState;
+      gameState.current.time=0;
+    }
   }
   
   // const addRandomHealthyFood = () =>{
@@ -101,18 +69,7 @@ const GameCamComponent = () =>  {
     const context = canvas.getContext("2d");
 
     gameState.current.junkFood.forEach((food:Food)=>{
-      context.font = `${foodWidth}px serif`
-      context.fillText(food.char, food.x , food.y)
-      if(gameState.current.showLandMarks){
-        context.strokeStyle = 'green';
-        context.lineWidth = 2;
-        context.beginPath();
-        context.rect(food.x, food.y-foodWidth, foodWidth, foodWidth);
-        context.stroke();
-      }
-      // update food position which is "falling" 
-      food.y=food.y+10
-
+     drawFood(food,foodWidth,context,gameState.current.showLandMarks)
     })
 
     //clear food that already fell away
@@ -130,7 +87,7 @@ const GameCamComponent = () =>  {
         return false;
       }
       if (eatingFood) { 
-        //take a picture when eating food after half of the game started
+        //take a picture of player when eating food after half game
         if(!gameState.current.capturedImage && 3*gameState.current.time > (gameTime/gameVelocity)){ 
           const video = videoRef.current;
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -300,7 +257,7 @@ const GameCamComponent = () =>  {
     <p>  {isMouthOpen ? 'Mouth is open': 'Mouth is closed'} </p> 
     <p>  Score: {gameScore.junkEaten} junk food eaten, {gameScore.junkOnFloor} fell on the floor  </p> 
 
-    <button onClick={()=>gameState.current.time=0}>Play ▶</button>
+    <button onClick={startGame}>Play ▶</button>
     <button onClick={()=>{gameState.current.showLandMarks = !gameState.current.showLandMarks}}>
        { gameState.current.showLandMarks ? 'Hide LandMarks':'Show LandMarks' }
        {gameState.current.capturedImage && gameState.current.time==-1 && 
