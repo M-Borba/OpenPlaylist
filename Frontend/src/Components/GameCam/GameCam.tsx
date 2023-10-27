@@ -254,7 +254,7 @@ const GameCamComponent = () =>  {
             <video ref={videoRef} width="640" height="480" className="video" />
             <canvas ref={canvasRef} width="640" height="480" className="canvas" />
           </div>
-    <p>  {isMouthOpen ? 'Mouth is open': 'Mouth is closed'} </p> 
+    <h2>  {isMouthOpen ? '😮' : '😐' } </h2> 
     <p>  Score: {gameScore.junkEaten} junk food eaten, {gameScore.junkOnFloor} fell on the floor  </p> 
 
     <button onClick={startGame}>Play ▶</button>
