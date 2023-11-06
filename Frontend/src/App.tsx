@@ -4,19 +4,19 @@ import { Link } from 'react-router-dom';
 
 
 import './App.css'
-import { fetchProfile, getAccessToken } from './Pages/ExportPlaylist/SpotifyUtils';
+import { fetchProfile, getAccessToken, loginSpotify } from './Pages/ExportPlaylist/SpotifyUtils';
 
 function App() {
  //TODO CONSIDER ADDING PAYED ADDS https://adsense.google.com/start/?subid=uy-en-ha-ads-bk-a-search!o3
 
- const urlParams = new URLSearchParams(window.location.search);
- const code = urlParams.get('code');
- console.log(code)
- if(code){
-  getAccessToken(code);
-  const profile = fetchProfile();
-  console.log("fetchProfile",profile);
- }
+//  const urlParams = new URLSearchParams(window.location.search);
+//  const code = urlParams.get('code');
+//  console.log(code)
+//  if(code){
+//   getAccessToken(code);
+//   const profile = fetchProfile();
+//   console.log("fetchProfile",profile);
+//  }
   return (
     <>
       <div>
@@ -34,8 +34,10 @@ function App() {
           Link YouTube account
         </button>
           </Link>
-        <Link to="export-playlist/spotify">
-        <button >
+
+          {/* export-playlist/spotify */}
+        <Link to="#">
+        <button onClick={() => loginSpotify()} >
           Link Spotify account
         </button>
         </Link>

@@ -10,6 +10,7 @@ from bson import json_util, ObjectId
 from datetime import datetime, timedelta
 
 from api.mappings import playlist_mapping_api
+from api.spotify_api import spotify_api
 
 class MongoJsonEncoder(JSONEncoder):
     def default(self, obj):
@@ -31,6 +32,7 @@ def create_app():
     CORS(app)
     app.json_encoder = MongoJsonEncoder
     app.register_blueprint(playlist_mapping_api)
+    app.register_blueprint(spotify_api)
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
