@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import MBorba from './Pages/MBorba/MBorba.tsx'
-import ExportPlaylist from './Pages/ExportPlaylist/ExportPlaylist.tsx'
+// import ExportPlaylist from './Pages/ExportPlaylist/ExportPlaylist.tsx'
 
 import './index.css'
 
@@ -10,19 +10,15 @@ import {
   createBrowserRouter,
   RouterProvider,
 } from "react-router-dom";
+
 import { Link } from '../node_modules/react-router-dom/dist/index';
 
 const router = createBrowserRouter([
   {
-    path: "/",
+    path: "/*",
     element: <App/>,
-  },
-  {
-    path: "export-playlist/:from",
-    element: <ExportPlaylist/>,
     
   },
-
   {
     path: "/m-borba",
     element: <MBorba/>,

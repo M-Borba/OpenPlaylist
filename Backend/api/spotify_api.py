@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from db import get_youtube_mapping
 from flask import current_app as app, redirect
-
+import requests
 from flask_cors import CORS
 import urllib.parse
 import random
@@ -49,6 +49,8 @@ def login():
 def callback():
     code = request.args.get('code', None)
     state = request.args.get('state', None)
+    print("code",code)
+    print("state",state)
 
     if state is None:
         error_params = {
@@ -68,3 +70,16 @@ def callback():
             'Authorization': 'Basic ' + base64.b64encode(f"{app.config['SPOTIFY_CLIENT_ID']}:{app.config['SPOTIFY_CLIENT_SECRET']}".encode()).decode()
         }
     }
+    # Make the POST request to the Spotify API
+    response = requests.post(auth_options['url'], data=auth_options['data'], headers=auth_options['headers'])
+    data = response.json()  # Parse the JSON response from the Spotify API
+
+    # Add the 'app' key to the response data
+    data['app'] = 'spotify'
+    print(data)
+
+    query_string = urllib.parse.urlencode(data)
+
+    return redirect('http://localhost:5173/?'+query_string, 302)
+
+    

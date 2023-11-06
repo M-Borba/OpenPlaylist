@@ -4,19 +4,31 @@ import { Link } from 'react-router-dom';
 
 
 import './App.css'
-import { fetchProfile, getAccessToken, loginSpotify } from './Pages/ExportPlaylist/SpotifyUtils';
+import { fetchProfile, loginSpotify } from './Pages/ExportPlaylist/SpotifyUtils';
 
 function App() {
  //TODO CONSIDER ADDING PAYED ADDS https://adsense.google.com/start/?subid=uy-en-ha-ads-bk-a-search!o3
 
-//  const urlParams = new URLSearchParams(window.location.search);
-//  const code = urlParams.get('code');
-//  console.log(code)
-//  if(code){
-//   getAccessToken(code);
-//   const profile = fetchProfile();
-//   console.log("fetchProfile",profile);
-//  }
+ const urlParams = new URLSearchParams(window.location.search);
+
+ const access_token = urlParams.get('access_token');
+ console.log("access_token",access_token)
+
+ const refresh_token = urlParams.get('refresh_token');
+ const scope =urlParams.get('scope');
+ const token_type =urlParams.get('token_type');
+ const expires_in = urlParams.get('expires_in');
+ const app = urlParams.get('app');
+
+ console.log("app",app)
+
+ if( app=="spotify" && access_token){
+  
+  localStorage.setItem('spotify_access_token', access_token);
+  const profile = fetchProfile();
+  console.log("fetchProfile",profile);
+ }
+ 
   return (
     <>
       <div>
