@@ -25,7 +25,6 @@ CORS(spotify_api)
 
 @spotify_api.route('/login-spotify/', methods=['GET'])
 def login():
-    print("loging in")
     state = generate_random_string(16)
     scope = 'user-read-private user-read-email playlist-read-private playlist-read-collaborative'
     

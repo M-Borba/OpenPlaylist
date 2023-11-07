@@ -62,3 +62,26 @@
     display: block;
     margin: 0 auto;
   }
+
+.platform-container div{
+  display:flex;
+  flex-direction: row;
+}
+
+.platform-container strong{
+  font-size: 1.7em
+}
+
+.platform-container img{ 
+  width: 64px;
+  height: 64px;
+  border-radius:50%;
+  display:inline;
+  vertical-align: bottom;
+  margin: 5px
+}
+
+.platform-container li {
+  list-style:none;
+  text-align: left;
+}

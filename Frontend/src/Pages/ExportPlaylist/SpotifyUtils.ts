@@ -34,13 +34,21 @@
     const response = await fetch("https://api.spotify.com/v1/me", {
         method: "GET", headers: { Authorization: `Bearer ${access_token}` }
     });
-    const result = await response.json()
-    console.log("result",result);
-
-    return result;
-
-  
+    return response.json()
 }
-  export async function getAllPlaylists(user_id){
-      
+  export async function getUsersPlaylists(user_id: number){
+    const access_token = localStorage.getItem('spotify_access_token');
+    const response = await fetch(`https://api.spotify.com/v1/users/${user_id}/playlists`, {
+        method: "GET", headers: { Authorization: `Bearer ${access_token}` }
+    });
+    return response.json()
   }
+
+  export async function getPlaylistsItems(playlist_id: number){
+    const access_token = localStorage.getItem('spotify_access_token');
+    const response = await fetch(` https://api.spotify.com/v1/playlists/${playlist_id}/tracks`, {
+        method: "GET", headers: { Authorization: `Bearer ${access_token}` }
+    });
+    return response.json()
+  }
+  
