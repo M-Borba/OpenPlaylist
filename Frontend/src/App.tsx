@@ -13,27 +13,28 @@ function App() {
 
 
   const [spotifyUser,setSpotifyUser] =useState<any>(null)
-
+  const [spotifyAuth,setSpotifyAuth] =useState<any>(null)
   const [spotifyPlaylists,setSpotifyPlaylists] =useState<any>([])
   const [spotifyTotalPlaylists,setSpotifyTotalPlaylists] =useState<any>(0)
 
  const urlParams = new URLSearchParams(window.location.search);
 
 
- const access_token = urlParams.get('access_token');
- const refresh_token = urlParams.get('refresh_token');
- const scope =urlParams.get('scope');
- const token_type =urlParams.get('token_type');
- const expires_in = urlParams.get('expires_in');
+
  const app = urlParams.get('app');
 
- if( app=="spotify" && access_token){
-  
-  localStorage.setItem('spotify_access_token', access_token);
+ if( app=="spotify" && !spotifyAuth){
+  const access_token = urlParams.get('access_token');
+  const refresh_token = urlParams.get('refresh_token');
+  const scope =urlParams.get('scope');
+  const token_type =urlParams.get('token_type');
+  const expires_in = urlParams.get('expires_in');
+  const spotify_data = {access_token,refresh_token,scope,token_type,expires_in}
+
+  localStorage.setItem('spotify_data', JSON.stringify(spotify_data));
+  setSpotifyAuth(spotify_data)
   // localStorage.setItem('spotify_refresh_token', refresh_token); TODO
-  console.log("fetching profile")
   fetchProfile().then((user)=>setSpotifyUser(user))
-  window.location.search="" // avoid calling fetchProfile
 
   // fetchSpotifyPlaylists()
  }
@@ -42,7 +43,7 @@ function App() {
    if(spotifyUser?.id) getUsersPlaylists(spotifyUser.id)
       .then((playlistsResponse)=>{
         setSpotifyPlaylists(playlistsResponse.items)
-        setSpotifyTotalPlaylists(playlistsResponse.items)
+        setSpotifyTotalPlaylists(playlistsResponse.total)
 
       });
 
@@ -68,30 +69,20 @@ function App() {
           Link YouTube account
         </button>
           </Link>
-          <button onClick={() =>  getUsersPlaylists(12156634387).then((playlistsResponse)=>{
-            setSpotifyPlaylists(playlistsResponse.items);
-            setSpotifyTotalPlaylists(playlistsResponse.total)
-          })} >
-         get playlists
-        </button>
-         <button onClick={() =>  fetchProfile().then((user)=>setSpotifyUser(user))} >
-         get profile
-        </button>
-          {/* export-playlist/spotify */}
-          {!spotifyPlaylists ?  <Link to="#">
+          {!spotifyAuth ?  <Link to="#">
         <button onClick={() => loginSpotify()} >
           Link Spotify account
         </button>
         </Link> : <div className="platform-container">
           <div>
          <img src={spotifyUser?.images[0].url} /> <strong> {spotifyUser?.display_name}</strong>
-         <p>total playlists : {spotifyTotalPlaylists}</p>
+         <p> Total playlists : {spotifyTotalPlaylists}</p>
          </div>
           <ol class="platform-list">
           {spotifyPlaylists.map((playlist) =>(
             <li>
               <img src={playlist.images[0].url} onClick={ () => getPlaylistsItems(playlist.id).then(console.log)}/>
-            <strong>{playlist.name}  <a href={playlist.external_urls.spotify}>🔗</a> </strong>total:{playlist.tracks.total}
+            <strong>{playlist.name}  <a href={playlist.external_urls.spotify}>🔗</a> </strong> <p> total:{playlist.tracks.total}</p>
           </li>
           ))}
         </ol>

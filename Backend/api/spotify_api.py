@@ -41,7 +41,7 @@ def login():
     
     # return redirect('https://accounts.spotify.com/authorize?' + query_string)
 
-    return jsonify({"redirect": 'https://accounts.spotify.com/authorize?' + query_string})
+    return {"redirect": 'https://accounts.spotify.com/authorize?' + query_string}
 
 
 @spotify_api.route('/spotify-callback/', methods=['GET'])
@@ -81,4 +81,31 @@ def callback():
 
     return redirect('http://localhost:5173/?'+query_string, 302)
 
-    
+
+@spotify_api.route('/transform-to-youtube/', methods=['POST'])
+def transform_to_youtube(request):
+    spotify_id = request.args.get('spotify_id', None)
+    data = request.json
+    access_token = data.get('access_token')
+    print("access_token",access_token)
+
+
+    auth_options = {
+        'url': f'api.spotify.com/v1/playlists/${spotify_id}/tracks',
+        'data': {
+            'redirect_uri': app.config['SPOTIFY_REDIRECT_URI'],
+        },
+        'headers': {
+            'Authorization': 'Bearer ' + access_token
+        }
+    }
+    # Make the POST request to the Spotify API
+    response = requests.post(auth_options['url'], data=auth_options['data'], headers=auth_options['headers'])
+    data = response.json()  # Parse the JSON response from the Spotify API
+#`https: // `,
+
+
+    return {"new_playlist_id": 123}
+
+
+        

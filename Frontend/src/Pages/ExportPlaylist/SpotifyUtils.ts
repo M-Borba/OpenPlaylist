@@ -30,14 +30,14 @@
 
 
     export async function fetchProfile(): Promise<any> {
-    const access_token = localStorage.getItem('spotify_access_token');
+    const access_token = JSON.parse(localStorage.getItem('spotify_data')|| "").access_token;
     const response = await fetch("https://api.spotify.com/v1/me", {
         method: "GET", headers: { Authorization: `Bearer ${access_token}` }
     });
     return response.json()
 }
   export async function getUsersPlaylists(user_id: number){
-    const access_token = localStorage.getItem('spotify_access_token');
+    const access_token = JSON.parse(localStorage.getItem('spotify_data') || "").access_token;
     const response = await fetch(`https://api.spotify.com/v1/users/${user_id}/playlists`, {
         method: "GET", headers: { Authorization: `Bearer ${access_token}` }
     });
@@ -45,8 +45,8 @@
   }
 
   export async function getPlaylistsItems(playlist_id: number){
-    const access_token = localStorage.getItem('spotify_access_token');
-    const response = await fetch(` https://api.spotify.com/v1/playlists/${playlist_id}/tracks`, {
+    const access_token = JSON.parse(localStorage.getItem('spotify_data') || "").access_token;
+    const response = await fetch(`https://api.spotify.com/v1/playlists/${playlist_id}/tracks`, {
         method: "GET", headers: { Authorization: `Bearer ${access_token}` }
     });
     return response.json()
