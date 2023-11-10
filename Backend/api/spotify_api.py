@@ -7,6 +7,7 @@ import urllib.parse
 import random
 import string
 import base64
+import re
 
 def generate_random_string(length):
     text = ''
@@ -21,6 +22,42 @@ spotify_api = Blueprint(
     'spotify_api', 'spotify_api', url_prefix='/api')
 
 CORS(spotify_api)
+
+
+def extract_alphanumeric_with_spaces(s):
+    return re.sub(r'[^a-zA-Z0-9\s]', '', s)
+
+
+def jaccard_similarity(word1, word2): # returns a float between 0 and 1
+    word1_alphanumeric = extract_alphanumeric_with_spaces(word1.lower())
+    word2_alphanumeric = extract_alphanumeric_with_spaces(word2.lower())
+    s1 = set(word1_alphanumeric.split())
+    s2 = set(word2_alphanumeric.split())
+    return float(len(s1.intersection(s2)) / min([len(s1),len(s2)])) #len(s1.union(s2)))
+
+
+def search_spotify_song(name, artist, auth):
+    request = {
+        'url': 'https://api.spotify.com/v1/search',
+        'params': {'q':f'{name} {artist}','type':'track','limit':1}, # only take first result
+        'data': {},
+        'headers': {
+            'content-type': 'application/x-www-form-urlencoded',
+            'Authorization': auth
+        }
+    }
+    # Make the POST request to the Spotify API
+    response = requests.get(
+        request['url'], params=request['params'], headers=request['headers'])
+    data = response.json()  # Parse the JSON response from the Spotify API
+    print(data)
+    print('-----')
+
+    return data['tracks']['items'][0]
+
+
+
+
 
 
 @spotify_api.route('/login-spotify/', methods=['GET'])
@@ -48,8 +85,6 @@ def login():
 def callback():
     code = request.args.get('code', None)
     state = request.args.get('state', None)
-    print("code",code)
-    print("state",state)
 
     if state is None:
         error_params = {
@@ -82,30 +117,46 @@ def callback():
     return redirect('http://localhost:5173/?'+query_string, 302)
 
 
-@spotify_api.route('/transform-to-youtube/', methods=['POST'])
-def transform_to_youtube(request):
-    spotify_id = request.args.get('spotify_id', None)
-    data = request.json
-    access_token = data.get('access_token')
-    print("access_token",access_token)
+@spotify_api.route('/search-spotify/', methods=['GET'])
+def search_spotify():
+    name = request.args.get('name', None)
+    artist = request.args.get('artist', None)
+    auth = request.headers.get('Authorization')   
+        
+    song = search_spotify_song(name, artist, auth)
+
+    j_similarity = jaccard_similarity(name,song['name'])
+    print('j_similarity',j_similarity) 
+
+    return song
 
 
-    auth_options = {
-        'url': f'api.spotify.com/v1/playlists/${spotify_id}/tracks',
-        'data': {
-            'redirect_uri': app.config['SPOTIFY_REDIRECT_URI'],
-        },
-        'headers': {
-            'Authorization': 'Bearer ' + access_token
-        }
-    }
-    # Make the POST request to the Spotify API
-    response = requests.post(auth_options['url'], data=auth_options['data'], headers=auth_options['headers'])
-    data = response.json()  # Parse the JSON response from the Spotify API
-#`https: // `,
+# @spotify_api.route('/transform-to-youtube/', methods=['POST'])
+# def transform_to_youtube(request):
+#     spotify_id = request.args.get('spotify_id', None)
+#     artist = request.args.get('artist', None)
+#     bearer = request.headers.get('Authorization')   
+#     access_token = bearer.split()[1] 
+#     data = request.json
+#     print("access_token",access_token)
 
 
-    return {"new_playlist_id": 123}
+#     auth_options = {
+#         'url': f'api.spotify.com/v1/playlists/${spotify_id}/tracks',
+#         'data': {
+#             'redirect_uri': app.config['SPOTIFY_REDIRECT_URI'],
+#         },
+#         'headers': {
+#             'Authorization': 'Bearer ' + access_token
+#         }
+#     }
+#     # Make the POST request to the Spotify API
+#     response = requests.post(auth_options['url'], data=auth_options['data'], headers=auth_options['headers'])
+#     data = response.json()  # Parse the JSON response from the Spotify API
+# #`https: // `,
+
+
+#     return {"new_playlist_id": 123}
 
 
         
