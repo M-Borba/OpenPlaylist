@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 
 import './App.css'
-import { fetchProfile, getPlaylistsItems, getUsersPlaylists, loginSpotify } from './Pages/ExportPlaylist/SpotifyUtils';
+import { fetchProfile, getPlaylistsItems, getUsersPlaylists, loginSpotify, testingEndpoint } from './Pages/ExportPlaylist/SpotifyUtils';
 import { useState } from 'react';
 import { useEffect } from 'react';
 
@@ -69,6 +69,10 @@ function App() {
           Link YouTube account
         </button>
           </Link>
+          {/* todo:delete testing button */}
+        <button onClick={() => testingEndpoint(spotifyUser.id)}  >
+         TESTING
+        </button>
           {!spotifyAuth ?  <Link to="#">
         <button onClick={() => loginSpotify()} >
           Link Spotify account
