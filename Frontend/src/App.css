@@ -75,6 +75,7 @@ p{
   background-color:rgb(133, 133, 133);
   padding: 0.5em; 
   border-radius: 1.5em;
+  gap:0.2em;
 }
 
 .platform-container strong{

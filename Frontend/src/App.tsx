@@ -34,7 +34,7 @@ function App() {
   localStorage.setItem('spotify_data', JSON.stringify(spotify_data));
   setSpotifyAuth(spotify_data)
   // localStorage.setItem('spotify_refresh_token', refresh_token); TODO
-  fetchProfile().then((user)=>setSpotifyUser(user))
+  fetchProfile().then((user)=>setSpotifyUser(user)).catch((err)=>console.log(err))
 
   // fetchSpotifyPlaylists()
  }
@@ -79,13 +79,13 @@ function App() {
         </button>
         </Link> : <div className="platform-container">
           <div>
-         <img src={spotifyUser?.images[0].url} /> <strong> {spotifyUser?.display_name}</strong>
+         <img src={spotifyUser?.images[0] ? spotifyUser?.images[0].url : "./src/assets/UserIcon.svg"} /> <strong> {spotifyUser?.display_name}</strong>
          <p> Total playlists : {spotifyTotalPlaylists}</p>
          </div>
           <ol class="platform-list">
           {spotifyPlaylists.map((playlist) =>(
-            <li>
-              <img src={playlist.images[0].url} onClick={ () => getPlaylistsItems(playlist.id).then(console.log)}/>
+            <li key={playlist.id}>
+              <img src={playlist.images[0] ? playlist.images[0].url : "./src/assets/PlaylistIcon.svg"} onClick={ () => getPlaylistsItems(playlist.id).then(console.log)}/>
             <strong>{playlist.name}  <a href={playlist.external_urls.spotify}>🔗</a> </strong> <p> total:{playlist.tracks.total}</p>
           </li>
           ))}
