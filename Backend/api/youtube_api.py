@@ -1,3 +1,12 @@
+import re
+import base64
+import string
+import random
+import urllib.parse
+from flask_cors import CORS
+from flask import current_app as app, redirect
+from db import get_youtube_mapping
+from flask import Blueprint, request, jsonify
 import os
 import flask
 
@@ -9,13 +18,14 @@ import json
 from flask import Flask, request, jsonify
 import requests
 
-app = Flask(__name__)
-app.config['JSON_AS_ASCII'] = False
-key = "Debe ir key app yt"
+# app = Flask(__name__)
+# app.config['JSON_AS_ASCII'] = False
+key = "AIzaSyAFWy7KSoti-44xQ_LQPiRhXA0SyRmbmv0"
 
 # This variable specifies the name of a file that contains the OAuth 2.0
 # information for this application, including its client_id and client_secret.
-CLIENT_SECRETS_FILE = "Backend/client_secret.json" #Se deben agregar los creados para la cuenta de prueba
+# Se deben agregar los creados para la cuenta de prueba
+CLIENT_SECRETS_FILE = "Backend/client_secret.json"
 
 # This OAuth 2.0 access scope allows for full read/write access to the
 # authenticated user's account and requires requests to use an SSL connection.
@@ -23,15 +33,26 @@ SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl']
 API_SERVICE_NAME = 'youtube'
 API_VERSION = 'v3'
 
+
+
 #########################################################################################################
 ########################                 Region AUTHENTICATION                  #########################
 #########################################################################################################
 
-@app.route('/')
+
+youtube_api = Blueprint(
+    'youtube_api', 'youtube_api', url_prefix='/api')
+
+CORS(youtube_api)
+
+# youtube_api.config['JSON_AS_ASCII'] = False
+
+@youtube_api.route('/')
 def index():
   return print_index_table()
 
-@app.route('/test')
+
+@youtube_api.route('/test')
 def test_api_request():
   if 'credentials' not in flask.session:
     return flask.redirect('authorize')
@@ -56,7 +77,8 @@ def test_api_request():
 
   return flask.jsonify(**response_data)
 
-@app.route('/authorize')
+
+@youtube_api.route('/authorize')
 def authorize():
   # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
   flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
@@ -81,7 +103,7 @@ def authorize():
   return flask.redirect(authorization_url)
 
 
-@app.route('/oauth2callback')
+@youtube_api.route('/oauth2callback')
 def oauth2callback():
   # Specify the state when creating the flow in the callback so that it can
   # verified in the authorization server response.
@@ -104,7 +126,7 @@ def oauth2callback():
   return flask.redirect(flask.url_for('test_api_request'))
 
 
-@app.route('/revoke')
+@youtube_api.route('/revoke')
 def revoke():
   if 'credentials' not in flask.session:
     return ('You need to <a href="/authorize">authorize</a> before ' +
@@ -124,7 +146,7 @@ def revoke():
     return('An error occurred.' + print_index_table())
 
 
-@app.route('/clear')
+@youtube_api.route('/clear')
 def clear_credentials():
   if 'credentials' in flask.session:
     del flask.session['credentials']
@@ -135,7 +157,8 @@ def clear_credentials():
 ########################                 Region CONTROLLERS                  #########################
 ######################################################################################################
 
-@app.route('/listasReproduccionYT', methods=['GET'])
+
+@youtube_api.route('/listasReproduccionYT', methods=['GET'])
 def get_lists():
     idUsuario = request.args.get('idUsuarioYT')
     auth_header = request.headers.get('authorization')
@@ -165,7 +188,8 @@ def get_lists():
     
     return jsonify({'data': name})
 
-@app.route('/videosListasYT', methods=['GET'])
+
+@youtube_api.route('/videosListasYT', methods=['GET'])
 def get_list_items():
     idLista = request.args.get('idListaYT')
     auth_header = request.headers.get('authorization')
@@ -196,7 +220,7 @@ def get_list_items():
     
     return jsonify({'data': name})
 
-@app.route('/buscarYT', methods=['GET'])
+@youtube_api.route('/buscarYT', methods=['GET'])
 def query_records():
     busqueda = request.args.get('query')
     auth_header = request.headers.get('authorization')
@@ -236,7 +260,7 @@ def query_records():
 #    
 #    return jsonify({'data': name})
 
-@app.route('/migrateSpotifyToYoutube', methods=['GET'])
+@youtube_api.route('/migrateSpotifyToYoutube', methods=['GET'])
 def migration_records():
     idLista = request.args.get('idListaSpotify')
     nombreLista = request.args.get('nombreListaSpotify')
@@ -298,7 +322,7 @@ def migration_records():
         # La solicitud no fue exitosa, maneja el error
         return jsonify({'error': 'Error al consumir el servicio'}), 500
 
-@app.route('/', methods=['POST'])
+@youtube_api.route('/', methods=['POST'])
 def update_record():
    
     return jsonify({})
@@ -391,6 +415,8 @@ def obtenerCancionesListaSpotify(idLista, idUsuario, auth_header):
    return None
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-app.run(host="localhost", port=8080, debug=True)
+
+
+# app.run(host="localhost", port=8080, debug=True)
 
 #from Backend.Controller import youtube_controller

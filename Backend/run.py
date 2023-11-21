@@ -22,6 +22,12 @@ if __name__ == "__main__":
     app.config['SPOTIFY_CLIENT_ID'] = config['PROD']['SPOTIFY_CLIENT_ID']
     app.config['SPOTIFY_CLIENT_SECRET'] = config['PROD']['SPOTIFY_CLIENT_SECRET']
     app.config['SPOTIFY_REDIRECT_URI'] = config['PROD']['SPOTIFY_REDIRECT_URI']
+
+    app.config['GOOGLE_API_KEY'] = config['PROD']['GOOGLE_API_KEY']
+
+
     port_number  = config['PROD']['PORT']
+
+
 
     app.run(port=port_number)
