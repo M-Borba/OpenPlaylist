@@ -50,13 +50,17 @@ def search_spotify_song(name, artist, auth):
     response = requests.get(
         request['url'], params=request['params'], headers=request['headers'])
     data = response.json()  # Parse the JSON response from the Spotify API
-    print(data)
-    print('-----')
 
     return data['tracks']['items'][0]
 
 
+# Example to create:
+#  playlist_name = "new-playlist"
+#     playlist_description = "playlist_description"
+#     isPublic = False
 
+#     new_playlist = create_spotify_playlist(
+#         auth, user_id, playlist_name, playlist_description, isPublic)
 def create_spotify_playlist(auth, user_id, name, description, public=False):
     request = {
         'url': f"https://api.spotify.com/v1/users/{user_id}/playlists" ,
@@ -76,8 +80,36 @@ def create_spotify_playlist(auth, user_id, name, description, public=False):
         request['url'], json=request['data'], headers=request['headers'])
         
     data = response.json()  # Parse the JSON response from the Spotify API
-    print(data)
+
     return data
+
+# we can add songs in batches so we do not exceed max requests
+def add_songs_to_playlst(auth, song_ids=["561jH07mF1jHuk7KlaeF0s","6or1bKJiZ06IlK0vFvY75k"], playlist_id="1giRq4FkVgXPdWr5HNuB1U"):
+    song_uris = song_ids.copy()
+    # Modify the copied list
+    for i in range(len(song_uris)):
+        song_uris[i] = "spotify:track:" + song_uris[i]
+    
+    request = {
+        'url': f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks" ,
+        'data': {
+            "uris": song_uris,
+            "position": 0
+        },
+        'headers': {
+            'content-type': 'application/x-www-form-urlencoded',
+            'Authorization': auth
+        }
+    }
+    # Make the POST request to the Spotify API
+    print(request['url'])
+    response = requests.post(
+        request['url'], json=request['data'], headers=request['headers'])
+    
+    data = response.json()  # Parse the JSON response from the Spotify API
+    print("data", data)
+    return data
+
 
 
 
@@ -160,35 +192,10 @@ def search_spotify():
 def testing():
     spotify_id = request.args.get('spotify_id', None)
     auth = request.headers.get('Authorization')       
-    
     data = request.json
-    user_id = data.get('user_id', None)
-    if(not user_id):
-        return {"error": "no user_id given" },400
-
-    playlist_name = "new-playlist"
-    playlist_description = "playlist_description"
-
-    create_spotify_playlist(auth, user_id, playlist_name, playlist_description)
-
-    return {}
-
-    auth_options = {
-        'url': f'api.spotify.com/v1/playlists/${spotify_id}/tracks',
-        'data': {
-            'redirect_uri': app.config['SPOTIFY_REDIRECT_URI'],
-        },
-        'headers': {
-            'Authorization': 'Bearer ' + access_token
-        }
-    }
-    # Make the POST request to the Spotify API
-    response = requests.post(auth_options['url'], data=auth_options['data'], headers=auth_options['headers'])
-    data = response.json()  # Parse the JSON response from the Spotify API
-#`https: // `,
 
 
-    return {"new_playlist_id": 123}
+    return add_songs_to_playlst(auth)
 
 
         

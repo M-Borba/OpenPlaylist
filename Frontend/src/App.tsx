@@ -7,15 +7,23 @@ import './App.css'
 import { fetchProfile, getPlaylistsItems, getUsersPlaylists, loginSpotify, testingEndpoint } from './Pages/ExportPlaylist/SpotifyUtils';
 import { useState } from 'react';
 import { useEffect } from 'react';
+import { loginYoutube } from './Pages/ExportPlaylist/YouTubeUtils';
 
 function App() {
  //TODO CONSIDER ADDING PAYED ADDS https://adsense.google.com/start/?subid=uy-en-ha-ads-bk-a-search!o3
 
-
+  //spoty
   const [spotifyUser,setSpotifyUser] =useState<any>(null)
   const [spotifyAuth,setSpotifyAuth] =useState<any>(null)
   const [spotifyPlaylists,setSpotifyPlaylists] =useState<any>([])
   const [spotifyTotalPlaylists,setSpotifyTotalPlaylists] =useState<any>(0)
+
+  //yt
+
+  const [youtubeAuth,setYoutubeAuth] =useState<any>(null)
+
+
+
 
  const urlParams = new URLSearchParams(window.location.search);
 
@@ -34,7 +42,7 @@ function App() {
   localStorage.setItem('spotify_data', JSON.stringify(spotify_data));
   setSpotifyAuth(spotify_data)
   // localStorage.setItem('spotify_refresh_token', refresh_token); TODO
-  fetchProfile().then((user)=>setSpotifyUser(user))
+  fetchProfile().then((user)=>setSpotifyUser(user)).catch((err)=>console.log(err))
 
   // fetchSpotifyPlaylists()
  }
@@ -64,11 +72,26 @@ function App() {
           Move freely your playlist from one plataform to another .
         </p>
       <div className="card">
-        <Link to="export-playlist/youtube">
-          <button >
-          Link YouTube account
+         {!youtubeAuth ?  <Link to="#">
+        <button onClick={() => loginYoutube()} >
+          Link Youtube account
         </button>
-          </Link>
+        </Link> : "LINKEADO"
+        // <div className="platform-container">
+        //   <div>
+        //  <img src={youtubeUser?.images[0] ? youtubeUser?.images[0].url : "./src/assets/UserIcon.svg"} /> <strong> {youtubeUser?.display_name}</strong>
+        //  <p> Total playlists : {youtubeTotalPlaylists}</p>
+        //  </div>
+        //   <ol class="platform-list">
+        //   {spotifyPlaylists.map((playlist) =>(
+        //     <li key={playlist.id}>
+        //       <img src={playlist.images[0] ? playlist.images[0].url : "./src/assets/PlaylistIcon.svg"} onClick={ () => getPlaylistsItems(playlist.id).then(console.log)}/>
+        //     <strong>{playlist.name}  <a href={playlist.external_urls.spotify}>🔗</a> </strong> <p> total:{playlist.tracks.total}</p>
+        //   </li>
+        //   ))}
+        // </ol>
+        //   </div>
+        }
           {/* todo:delete testing button */}
         <button onClick={() => testingEndpoint(spotifyUser.id)}  >
          TESTING
@@ -79,18 +102,19 @@ function App() {
         </button>
         </Link> : <div className="platform-container">
           <div>
-         <img src={spotifyUser?.images[0].url} /> <strong> {spotifyUser?.display_name}</strong>
+         <img src={spotifyUser?.images[0] ? spotifyUser?.images[0].url : "./src/assets/UserIcon.svg"} /> <strong> {spotifyUser?.display_name}</strong>
          <p> Total playlists : {spotifyTotalPlaylists}</p>
          </div>
           <ol class="platform-list">
           {spotifyPlaylists.map((playlist) =>(
-            <li>
-              <img src={playlist.images[0].url} onClick={ () => getPlaylistsItems(playlist.id).then(console.log)}/>
+            <li key={playlist.id}>
+              <img src={playlist.images[0] ? playlist.images[0].url : "./src/assets/PlaylistIcon.svg"} onClick={ () => getPlaylistsItems(playlist.id).then(console.log)}/>
             <strong>{playlist.name}  <a href={playlist.external_urls.spotify}>🔗</a> </strong> <p> total:{playlist.tracks.total}</p>
           </li>
           ))}
         </ol>
-          </div>}
+          </div>
+        }
        
         
       </div>
