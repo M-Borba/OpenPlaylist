@@ -18,6 +18,8 @@ import json
 from flask import Flask, request, jsonify
 import requests
 
+from api.spotify_api import get_playlist_items
+
 # app = Flask(__name__)
 # app.config['JSON_AS_ASCII'] = False
 
@@ -99,18 +101,14 @@ def authorize():
       include_granted_scopes='true')
 
 
-  # Store the state so the callback can verify the auth server response.
-  flask.session['state'] = state
-  print("state-auth", state)
   return jsonify({"redirect": authorization_url})
 
 
 @youtube_api.route('/youtube-callback/', methods=['GET'])
 def oauth2callback():
-  # Specify the state when creating the flow in the callback so that it can
-  # verified in the authorization server response.
-  state = flask.session['state']
-  print("state-callback",state)
+
+  state = request.args.get('state', None)
+
   flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
       CLIENT_SECRETS_FILE, scopes=SCOPES, state=state)
   flow.redirect_uri = flask.url_for('youtube_api.oauth2callback', _external=True)
@@ -125,7 +123,31 @@ def oauth2callback():
   credentials = flow.credentials
   flask.session['credentials'] = credentials_to_dict(credentials)
 
-  return flask.redirect(flask.url_for('youtube_api.test_api_request'))
+#   return flask.redirect(flask.url_for('youtube_api.test_api_request'))
+  if 'credentials' not in flask.session:
+    return flask.redirect('authorize')
+
+  # Load credentials from the session.
+  credentials = google.oauth2.credentials.Credentials(
+      **flask.session['credentials'])
+  
+  token = credentials.token
+
+  youtube = googleapiclient.discovery.build(
+      API_SERVICE_NAME, API_VERSION, credentials=credentials)
+
+  channel = youtube.channels().list(mine=True, part='snippet').execute()
+  print(channel)
+  query_string = urllib.parse.urlencode({
+      'app':'youtube',
+      'access_token': token,
+       "channel_id":channel['items'][0]['id'],
+       "username": channel['items'][0]['snippet']['title'],
+       "user_image": channel['items'][0]['snippet']['thumbnails']['default']['url'],
+       })
+
+
+  return redirect('http://localhost:5173/?'+query_string, 302)
 
 
 @youtube_api.route('/revoke/')
@@ -191,12 +213,12 @@ def get_lists():
     return jsonify({'data': name})
 
 
-@youtube_api.route('/videosListasYT', methods=['GET'])
+@youtube_api.route('/youtube-playlist-items/', methods=['GET'])
 def get_list_items():
     idLista = request.args.get('idListaYT')
     auth_header = request.headers.get('authorization')
 
-    headers = {'Authorization': "Bearer " + auth_header} 
+    headers = {'Authorization': auth_header} 
     key = app.config['GOOGLE_API_KEY']
 
     servicio_url = 'https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=' + idLista + '&key=' + key
@@ -263,7 +285,13 @@ def query_records():
 #    
 #    return jsonify({'data': name})
 
-@youtube_api.route('/migrateSpotifyToYoutube', methods=['GET'])
+@youtube_api.route('/migrateSpotifyToYoutube/', methods=['GET'])
+def test():
+    playlist_id = request.args.get('playlist_id', None)
+    auth = request.headers.get('Authorization')  
+    return get_playlist_items(playlist_id,auth)
+
+
 def migration_records():
     idLista = request.args.get('idListaSpotify')
     nombreLista = request.args.get('nombreListaSpotify')

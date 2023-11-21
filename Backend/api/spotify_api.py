@@ -53,6 +53,22 @@ def search_spotify_song(name, artist, auth):
 
     return data['tracks']['items'][0]
 
+def get_playlist_items(playlist_id,auth):
+    request = {
+        'url': f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks',
+        'params': {'limit':100},
+        'data': {},
+        'headers': {
+            'content-type': 'application/x-www-form-urlencoded',
+            'Authorization': auth
+        }
+    }
+    # Make the POST request to the Spotify API
+    response = requests.get(
+        request['url'], params=request['params'], headers=request['headers'])
+    data = response.json()  # Parse the JSON response from the Spotify API
+
+    return data
 
 # Example to create:
 #  playlist_name = "new-playlist"
@@ -137,6 +153,7 @@ def login():
     return {"redirect": 'https://accounts.spotify.com/authorize?' + query_string}
 
 
+
 @spotify_api.route('/spotify-callback/', methods=['GET'])
 def callback():
     code = request.args.get('code', None)
@@ -197,5 +214,3 @@ def testing():
 
     return add_songs_to_playlst(auth)
 
-
-        

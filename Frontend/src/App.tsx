@@ -20,7 +20,8 @@ function App() {
 
   //yt
 
-  const [youtubeAuth,setYoutubeAuth] =useState<any>(null)
+  const [youtubeUser,setYoutubeUser] =useState<any>(null)
+  const [youtubeTotalPlaylists,setYoutubeTotalPlaylists] =useState<any>(0)
 
 
 
@@ -40,11 +41,26 @@ function App() {
   const spotify_data = {access_token,refresh_token,scope,token_type,expires_in}
 
   localStorage.setItem('spotify_data', JSON.stringify(spotify_data));
+
   setSpotifyAuth(spotify_data)
   // localStorage.setItem('spotify_refresh_token', refresh_token); TODO
-  fetchProfile().then((user)=>setSpotifyUser(user)).catch((err)=>console.log(err))
+  fetchProfile().then((user)=>{
+    setSpotifyUser(user)
+  }).catch((err)=>console.log(err))
 
   // fetchSpotifyPlaylists()
+ }else if(app =='youtube' && !youtubeUser){
+
+  const access_token = urlParams.get('access_token');
+  const channel_id = urlParams.get('channel_id');
+  const username = urlParams.get('username');
+  const user_image = urlParams.get('user_image');
+  const youtube_data = {channel_id,access_token,username,user_image,}
+  console.log({channel_id,access_token,username,user_image})
+  setYoutubeUser({channel_id,access_token,username,user_image})
+
+  localStorage.setItem('youtube_data', JSON.stringify(youtube_data));
+  
  }
 
  useEffect(()=>{
@@ -72,25 +88,25 @@ function App() {
           Move freely your playlist from one plataform to another .
         </p>
       <div className="card">
-         {!youtubeAuth ?  <Link to="#">
+         {!youtubeUser ?  <Link to="#">
         <button onClick={() => loginYoutube()} >
           Link Youtube account
         </button>
-        </Link> : "LINKEADO"
-        // <div className="platform-container">
-        //   <div>
-        //  <img src={youtubeUser?.images[0] ? youtubeUser?.images[0].url : "./src/assets/UserIcon.svg"} /> <strong> {youtubeUser?.display_name}</strong>
-        //  <p> Total playlists : {youtubeTotalPlaylists}</p>
-        //  </div>
-        //   <ol class="platform-list">
-        //   {spotifyPlaylists.map((playlist) =>(
-        //     <li key={playlist.id}>
-        //       <img src={playlist.images[0] ? playlist.images[0].url : "./src/assets/PlaylistIcon.svg"} onClick={ () => getPlaylistsItems(playlist.id).then(console.log)}/>
-        //     <strong>{playlist.name}  <a href={playlist.external_urls.spotify}>🔗</a> </strong> <p> total:{playlist.tracks.total}</p>
-        //   </li>
-        //   ))}
-        // </ol>
-        //   </div>
+        </Link> :
+        <div className="platform-container">
+          <div>
+         <img src={youtubeUser?.user_image  || "./src/assets/UserIcon.svg"} /> <strong> {youtubeUser?.username}</strong>
+         <p> Total playlists : {youtubeTotalPlaylists}</p>
+         </div>
+          <ol class="platform-list">
+          {/* {youtubePlaylists.map((playlist) =>(
+            <li key={playlist.id}>
+              <img src={playlist.images[0] ? playlist.images[0].url : "./src/assets/PlaylistIcon.svg"} onClick={ () => getPlaylistsItems(playlist.id).then(console.log)}/>
+            <strong>{playlist.name}  <a href={playlist.external_urls.spotify}>🔗</a> </strong> <p> total:{playlist.tracks.total}</p>
+          </li>
+          ))} */}
+        </ol>
+          </div>
         }
           {/* todo:delete testing button */}
         <button onClick={() => testingEndpoint(spotifyUser.id)}  >
