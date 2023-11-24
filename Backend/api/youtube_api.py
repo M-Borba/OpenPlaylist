@@ -18,7 +18,7 @@ import json
 from flask import Flask, request, jsonify
 import requests
 
-from api.spotify_api import get_playlist_items
+from api.spotify_api import get_spotify_playlist_items
 
 # app = Flask(__name__)
 # app.config['JSON_AS_ASCII'] = False
@@ -182,33 +182,38 @@ def clear_credentials():
 ######################################################################################################
 
 
-@youtube_api.route('/listasReproduccionYT', methods=['GET'])
+@youtube_api.route('/listasReproduccionYT/', methods=['GET'])
 def get_lists():
     idUsuario = request.args.get('idUsuarioYT')
-    auth_header = request.headers.get('authorization')
+    auth_header = request.headers.get('Authorization')
     key = app.config['GOOGLE_API_KEY']
-    headers = {'Authorization': "Bearer " + auth_header} 
+    headers = {'Authorization': auth_header}
 
     servicio_url = 'https://youtube.googleapis.com/youtube/v3/playlists?key=' + key + '&part=snippet&channelId=' + idUsuario + '&maxResults=50'  # Reemplaza {puerto} con el número de puerto real
+    
     response = requests.get(servicio_url, headers=headers)
+    data = response.json()  # Parse the JSON response from the Spotify API
+    print("data", data)
 
-    if response.status_code == 200:
-        # La solicitud fue exitosa, procesa los datos de la respuesta si es JSON
-        data_sin_parsear = response.content.decode('utf-8')  # Decodifica la respuesta como UTF-8
-        data = json.loads(data_sin_parsear)
-        listas_reproduccion = [
-            {
-                'titulo': item['snippet']['title'],
-                'id': item['id'],
-            }
-            for item in data.get('items', [])
-        ]
+    return jsonify(data)
+    # TODO ESTO NO PARECÍA NECESARIO
+    # if response.status_code == 200: 
+    #     # La solicitud fue exitosa, procesa los datos de la respuesta si es JSON
+    #     data_sin_parsear = response.content.decode('utf-8')  # Decodifica la respuesta como UTF-8
+    #     data = json.loads(data_sin_parsear)
+    #     listas_reproduccion = [
+    #         {
+    #             'titulo': item['snippet']['title'],
+    #             'id': item['id'],
+    #         }
+    #         for item in data.get('items', [])
+    #     ]
 
-        response_data = {'listasReproduccion': listas_reproduccion}
-        return jsonify(response_data)
-    else:
-        # La solicitud no fue exitosa, maneja el error
-        return jsonify({'error': 'Error al consumir el servicio'}), 500
+    #     response_data = {'listasReproduccion': listas_reproduccion}
+    #     return jsonify(response_data)
+    # else:
+    #     # La solicitud no fue exitosa, maneja el error
+    #     return jsonify({'error': 'Error al consumir el servicio'}), 500
     
     return jsonify({'data': name})
 
@@ -262,7 +267,7 @@ def query_records():
 def test():
     playlist_id = request.args.get('playlist_id', None)
     auth = request.headers.get('Authorization')  
-    data = get_playlist_items(playlist_id,auth)
+    data = get_spotify_playlist_items(playlist_id,auth)
     listas_reproduccion = [
             {
                 'titulo': item['track']['name'],
@@ -270,6 +275,8 @@ def test():
             for item in data.get('items', [])
         ]
     return listas_reproduccion
+    #     return get_spotify_playlist_items(playlist_id,auth)
+
 
 @youtube_api.route('/fromSpotifytoYoutube/', methods=['GET'])
 def migration_records():
@@ -296,7 +303,7 @@ def migration_records():
         idListaCreada = data['id']
 
         #Si la lista de YT fue creada correctamente, entonces paso a obtener la lista de canciones de Spotify
-        responseDataListaSpotify = get_playlist_items(idLista, auth_headerSpotify)
+        responseDataListaSpotify = get_spotify_playlist_items(idLista, auth_headerSpotify)
         if not 'error' in responseDataListaSpotify :
             # La solicitud fue exitosa, procesa los datos de la respuesta si es JSON
             canciones_lista_reproduccion = [

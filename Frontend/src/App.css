@@ -1,5 +1,5 @@
 #root {
-  max-width: 1280px;
+  max-width: 1920px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
@@ -85,9 +85,22 @@ p{
 .platform-container img{ 
   width: 64px;
   height: 64px;
-  border-radius:50%;
   display:inline;
   vertical-align: bottom;
+}
+.rounded{ 
+  border-radius:50%;
+}
+
+.exportBtn{
+  will-change: background-color;
+  transition: background-color 300ms;
+  border-radius:25%;
+
+}
+
+.exportBtn:hover {
+  background-color: gray
 }
 
 .platform-container li {

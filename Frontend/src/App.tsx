@@ -4,51 +4,90 @@ import { Link } from 'react-router-dom';
 
 
 import './App.css'
-import { fetchProfile, getPlaylistsItems, getUsersPlaylists, loginSpotify, testingEndpoint } from './Pages/ExportPlaylist/SpotifyUtils';
+import { fetchProfile, getSpotifyPlaylistsItems as getSpotifyPlaylistItems, getUsersPlaylists, loginSpotify, testingEndpoint } from './Pages/ExportPlaylist/SpotifyUtils';
 import { useState } from 'react';
 import { useEffect } from 'react';
-import { loginYoutube } from './Pages/ExportPlaylist/YouTubeUtils';
+import { getYoutubePlaylistItems, loginYoutube } from './Pages/ExportPlaylist/YouTubeUtils';
 
 function App() {
  //TODO CONSIDER ADDING PAYED ADDS https://adsense.google.com/start/?subid=uy-en-ha-ads-bk-a-search!o3
 
   //spoty
-  const [spotifyUser,setSpotifyUser] =useState<any>(null)
-  const [spotifyAuth,setSpotifyAuth] =useState<any>(null)
-  const [spotifyPlaylists,setSpotifyPlaylists] =useState<any>([])
-  const [spotifyTotalPlaylists,setSpotifyTotalPlaylists] =useState<any>(0)
+  const [spotifyUser,setSpotifyUser] =useState<any>(JSON.parse(localStorage.getItem('spotify_data') || "null"))
+  const [spotifyPlaylists,setSpotifyPlaylists] =useState<any>(JSON.parse(localStorage.getItem('spotify_playlists') || "null") || {items: [], total: 0})
+
+
+  // if(spotifyUser?.expire_datetime && new Date(spotifyUser.expire_datetime) > new Date()){ // TODO : if expires reset user
+  //   setSpotifyUser(null);
+  //   setSpotifyPlaylists(null)
+  // }
+
 
   //yt
 
-  const [youtubeUser,setYoutubeUser] =useState<any>(null)
-  const [youtubeTotalPlaylists,setYoutubeTotalPlaylists] =useState<any>(0)
+  const [youtubeUser,setYoutubeUser] =useState<any>(JSON.parse(localStorage.getItem('youtube_data') || "null"))
+  const [youtubePlaylists,setYoutubePlaylists] =useState<any>(JSON.parse(localStorage.getItem('youtube_playlists') || "null") || {items: [], total: 0})
 
+   const fetchSpotifyData = async (spoty_data:any) => {
+    try {
+      const user = await fetchProfile(spoty_data);
+      setSpotifyUser({...spotifyUser , ...user});
+      console.log("user", user);
+      const spotify_data = JSON.parse(localStorage.getItem('spotify_data') || '{}');
+      
+      localStorage.setItem('spotify_data', JSON.stringify({...spotify_data,id:user.id, display_name:user.display_name,images:user.images}));
+
+      const playlistsResponse = await getUsersPlaylists(user.id);
+      setSpotifyPlaylists({items: playlistsResponse.items, total: playlistsResponse.total});
+  
+      console.log("playlistsResponse", playlistsResponse);
+      localStorage.setItem('spotify_playlists', JSON.stringify({items: playlistsResponse.items, total: playlistsResponse.total}));
+
+      
+    } catch (error) {
+      console.error("Error fetching spotify data:", error);
+    }
+  };
+
+  const fetchYoutubeData = async (yt_data:any) => {
+    try {
+      const youtubePlaylsitsResponse = await getYoutubePlaylistItems(yt_data.access_token,yt_data.channel_id)
+      console.log("youtubePlaylsits",youtubePlaylsitsResponse)
+      setYoutubePlaylists(youtubePlaylsitsResponse)
+      localStorage.setItem('youtube_playlists', JSON.stringify(youtubePlaylsitsResponse));
+
+      
+    } catch (error) {
+      console.error("Error fetching youtube data:", error);
+    }
+  };
+
+
+useEffect(() => {
+ 
 
 
 
  const urlParams = new URLSearchParams(window.location.search);
-
-
-
  const app = urlParams.get('app');
 
- if( app=="spotify" && !spotifyAuth){
+
+ if( app=="spotify" && !spotifyUser){
   const access_token = urlParams.get('access_token');
   const refresh_token = urlParams.get('refresh_token');
   const scope =urlParams.get('scope');
   const token_type =urlParams.get('token_type');
-  const expires_in = urlParams.get('expires_in');
-  const spotify_data = {access_token,refresh_token,scope,token_type,expires_in}
+  const expires_in = urlParams.get('expires_in') as string;
+  var expire_datetime = new Date();
+  expire_datetime.setSeconds(expire_datetime.getSeconds() + parseInt(expires_in));
 
+  const spotify_data = {access_token,refresh_token,scope,token_type,expires_in,expire_datetime}
   localStorage.setItem('spotify_data', JSON.stringify(spotify_data));
-
-  setSpotifyAuth(spotify_data)
+  console.log("setItemspotify_data",spotify_data)
+  setSpotifyUser(spotify_data)
   // localStorage.setItem('spotify_refresh_token', refresh_token); TODO
-  fetchProfile().then((user)=>{
-    setSpotifyUser(user)
-  }).catch((err)=>console.log(err))
+  fetchSpotifyData(spotify_data)
 
-  // fetchSpotifyPlaylists()
  }else if(app =='youtube' && !youtubeUser){
 
   const access_token = urlParams.get('access_token');
@@ -56,22 +95,19 @@ function App() {
   const username = urlParams.get('username');
   const user_image = urlParams.get('user_image');
   const youtube_data = {channel_id,access_token,username,user_image,}
-  console.log({channel_id,access_token,username,user_image})
-  setYoutubeUser({channel_id,access_token,username,user_image})
-
-  localStorage.setItem('youtube_data', JSON.stringify(youtube_data));
+  setYoutubeUser(youtube_data)
   
+  localStorage.setItem('youtube_data', JSON.stringify(youtube_data));
+
+  fetchYoutubeData(youtube_data)
+ 
  }
 
- useEffect(()=>{
-   if(spotifyUser?.id) getUsersPlaylists(spotifyUser.id)
-      .then((playlistsResponse)=>{
-        setSpotifyPlaylists(playlistsResponse.items)
-        setSpotifyTotalPlaylists(playlistsResponse.total)
 
-      });
+}, []); 
 
- },[spotifyUser])
+
+
  
   return (
     <>
@@ -95,16 +131,18 @@ function App() {
         </Link> :
         <div className="platform-container">
           <div>
-         <img src={youtubeUser?.user_image  || "./src/assets/UserIcon.svg"} /> <strong> {youtubeUser?.username}</strong>
-         <p> Total playlists : {youtubeTotalPlaylists}</p>
+         <img className="rounded" src={youtubeUser?.user_image  || "./src/assets/UserIcon.svg"} /> <strong> {youtubeUser?.username}</strong>
+         <p> Total playlists : {youtubePlaylists?.pageInfo?.totalResults}</p>
          </div>
-          <ol class="platform-list">
-          {/* {youtubePlaylists.map((playlist) =>(
+          <ol className="platform-list">
+          {youtubePlaylists?.items?.map((playlist) =>(
             <li key={playlist.id}>
-              <img src={playlist.images[0] ? playlist.images[0].url : "./src/assets/PlaylistIcon.svg"} onClick={ () => getPlaylistsItems(playlist.id).then(console.log)}/>
-            <strong>{playlist.name}  <a href={playlist.external_urls.spotify}>🔗</a> </strong> <p> total:{playlist.tracks.total}</p>
+            <img className="rounded" src={playlist.snippet?.thumbnails?.default?.url || "./src/assets/PlaylistIcon.svg"}/>
+            <strong>{playlist.snippet?.title}  <a href={"https://www.youtube.com/playlist?list="+playlist.id}>🔗</a> </strong> <p> total:?</p>
+            <img className="exportBtn" src="./src/assets/export_icon.png" onClick={() => console.log("export")}/>
+
           </li>
-          ))} */}
+          ))}
         </ol>
           </div>
         }
@@ -112,20 +150,21 @@ function App() {
         <button onClick={() => testingEndpoint(spotifyUser.id)}  >
          TESTING
         </button>
-          {!spotifyAuth ?  <Link to="#">
+          {!spotifyUser ?  <Link to="#">
         <button onClick={() => loginSpotify()} >
           Link Spotify account
         </button>
         </Link> : <div className="platform-container">
           <div>
-         <img src={spotifyUser?.images[0] ? spotifyUser?.images[0].url : "./src/assets/UserIcon.svg"} /> <strong> {spotifyUser?.display_name}</strong>
-         <p> Total playlists : {spotifyTotalPlaylists}</p>
+         <img className="rounded" src={spotifyUser?.images?.length>0 && spotifyUser?.images[0] ? spotifyUser?.images[0].url : "./src/assets/UserIcon.svg"} /> <strong> {spotifyUser?.display_name}</strong>
+         <p> Total playlists : {spotifyPlaylists?.total}</p>
          </div>
-          <ol class="platform-list">
-          {spotifyPlaylists.map((playlist) =>(
+          <ol className="platform-list">
+          {spotifyPlaylists?.items.map((playlist:any) =>(
             <li key={playlist.id}>
-              <img src={playlist.images[0] ? playlist.images[0].url : "./src/assets/PlaylistIcon.svg"} onClick={ () => getPlaylistsItems(playlist.id).then(console.log)}/>
-            <strong>{playlist.name}  <a href={playlist.external_urls.spotify}>🔗</a> </strong> <p> total:{playlist.tracks.total}</p>
+                <img className="exportBtn" src="./src/assets/export_icon.png" style={{transform: "scaleX(-1)"}} onClick={() => console.log("export")}/>
+              <img className="rounded" src={playlist.images[0] ? playlist.images[0].url : "./src/assets/PlaylistIcon.svg"} onClick={ () => getSpotifyPlaylistItems(playlist.id).then(console.log)}/>
+            <strong>{playlist.name}  <a href={playlist.external_urls.spotify}>🔗</a> </strong> <p> total:{playlist.tracks?.total}</p>
           </li>
           ))}
         </ol>
@@ -134,9 +173,9 @@ function App() {
        
         
       </div>
-      <p className="light-text">
+      {/* <p className="light-text">
         Created by  <Link to="m-borba">Martín Borba </Link>
-      </p>
+      </p> */}
     </>
   )
 }
