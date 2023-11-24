@@ -53,7 +53,7 @@ def search_spotify_song(name, artist, auth):
 
     return data['tracks']['items'][0]
 
-def get_playlist_items(playlist_id,auth):
+def get_spotify_playlist_items(playlist_id,auth):
     request = {
         'url': f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks',
         'params': {'limit':100},
@@ -213,4 +213,21 @@ def testing():
 
 
     return add_songs_to_playlst(auth)
+
+
+def get_playlist_items_yt(playlist_id, auth):
+    return [{{
+                    'id':'eJO5HU_7_1w',
+                    'name': 'Eminem - The Real Slim Shady (Official Video - Clean Version)',
+                }}]
+
+@spotify_api.route('/migrateYoutubeToSpotify/', methods=['GET'])
+def test():
+    playlist_id = request.args.get('playlist_id', None)
+    auth = request.headers.get('Authorization')  
+    youtube_playlist_items = get_playlist_items_yt(playlist_id,auth)
+    for item in youtube_playlist_items:
+        search_spotify(item['name'], "", auth)
+
+    
 
