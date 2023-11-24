@@ -31,9 +31,9 @@ def extract_alphanumeric_with_spaces(s):
 def jaccard_similarity(word1, word2): # returns a float between 0 and 1
     word1_alphanumeric = extract_alphanumeric_with_spaces(word1.lower())
     word2_alphanumeric = extract_alphanumeric_with_spaces(word2.lower())
-    s1 = set(word1_alphanumeric.split())
-    s2 = set(word2_alphanumeric.split())
-    return float(len(s1.intersection(s2)) / min([len(s1),len(s2)])) #len(s1.union(s2)))
+    s1 = set(word1_alphanumeric)
+    s2 = set(word2_alphanumeric)
+    return float(len(s1.intersection(s2)) / len(s1.union(s2))) 
 
 
 def search_spotify_song(name, artist, auth):
