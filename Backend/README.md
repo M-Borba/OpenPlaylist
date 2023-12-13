@@ -2,7 +2,9 @@
 Playlist data integration for free
 
 
-Create your own environment Python 3.8.18, I use conda env (backenv)
+Create your own environment Python 3.8.18, I use conda env (backenv). Remember to add .ini file inside Backend, and run from there.
+In the case of frontend you need a .env file. 
+There are examples provided for each file.
 
 
 ## Postman link: 

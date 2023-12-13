@@ -9,7 +9,7 @@ from flask_cors import CORS
 from bson import json_util, ObjectId
 from datetime import datetime, timedelta
 
-from api.mappings import playlist_mapping_api
+from api.mappings import song_mappings_api
 from api.spotify_api import spotify_api
 from api.youtube_api import youtube_api
 
@@ -32,7 +32,7 @@ def create_app():
                 )
     CORS(app)
     app.json_encoder = MongoJsonEncoder
-    app.register_blueprint(playlist_mapping_api)
+    app.register_blueprint(song_mappings_api)
     app.register_blueprint(spotify_api)
     app.register_blueprint(youtube_api)
 

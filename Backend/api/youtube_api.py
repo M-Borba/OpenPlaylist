@@ -5,8 +5,9 @@ import random
 import urllib.parse
 from flask_cors import CORS
 from flask import current_app as app, redirect
-from db import get_youtube_mapping
+from db import set_mapping, get_youtube_mapping
 from flask import Blueprint, request, jsonify
+from api.utils import jaccard_similarity
 import os
 import flask
 
@@ -196,26 +197,7 @@ def get_lists():
     print("data", data)
 
     return jsonify(data)
-    # TODO ESTO NO PARECÍA NECESARIO
-    # if response.status_code == 200: 
-    #     # La solicitud fue exitosa, procesa los datos de la respuesta si es JSON
-    #     data_sin_parsear = response.content.decode('utf-8')  # Decodifica la respuesta como UTF-8
-    #     data = json.loads(data_sin_parsear)
-    #     listas_reproduccion = [
-    #         {
-    #             'titulo': item['snippet']['title'],
-    #             'id': item['id'],
-    #         }
-    #         for item in data.get('items', [])
-    #     ]
-
-    #     response_data = {'listasReproduccion': listas_reproduccion}
-    #     return jsonify(response_data)
-    # else:
-    #     # La solicitud no fue exitosa, maneja el error
-    #     return jsonify({'error': 'Error al consumir el servicio'}), 500
-    
-    return jsonify({'data': name})
+   
 
 
 @youtube_api.route('/youtube-playlist-items/', methods=['GET'])
@@ -286,14 +268,13 @@ def migration_records():
     auth_headerYT = request.headers.get('AuthorizationYT')
     key = app.config['GOOGLE_API_KEY']
 
-    headers = {'Authorization': "Bearer " + auth_headerYT} 
+    headers = {'Authorization': auth_headerYT} 
 
     servicio_url = 'https://youtube.googleapis.com/youtube/v3/playlists?part=snippet&key=' + key
 
     data = {'snippet': {'title': nombreLista,'description':'lista emigrada desde spotify'}}  # Datos de lista a crear
-
+    print(auth_headerSpotify,auth_headerYT,idLista,nombreLista)
     response = requests.post(servicio_url,json=data,headers=headers)
-
 
     if response.status_code == 200:
         # La solicitud fue exitosa, procesa los datos de la respuesta si es JSON
@@ -304,34 +285,63 @@ def migration_records():
 
         #Si la lista de YT fue creada correctamente, entonces paso a obtener la lista de canciones de Spotify
         responseDataListaSpotify = get_spotify_playlist_items(idLista, auth_headerSpotify)
+        failed_migrations=[]
+
         if not 'error' in responseDataListaSpotify :
             # La solicitud fue exitosa, procesa los datos de la respuesta si es JSON
             canciones_lista_reproduccion = [
                 {
                     'nombreCancion': item['track']['name'],
                     'idCancion': item['track']['id'],
+                    'nombreArtista':item['track']['artists'][0]['name'],
                 }
                 for item in responseDataListaSpotify.get('items', [])
             ]
-
             # Recorrer la lista resultante
             for cancion in canciones_lista_reproduccion:
                 nombre_cancion = cancion['nombreCancion']
                 id_cancion = cancion['idCancion']
+                nombre_artista = cancion['nombreArtista']
 
-                #Busco las canciones en YT
-                result_data = query_YT(nombre_cancion, auth_headerYT)
-                if result_data['success']:
-                    print("lista resultado: ",result_data['listaResultado'])
-                    print("primer resultado: ",result_data['listaResultado'][0])
-                    #inserta en la lista creada en YT el video encontrado que corresponde con la cancion de Spotify
-                    insert_item_YTList(idListaCreada, result_data['listaResultado'][0]['idVideo'], auth_headerYT)
 
-            response_data = {'success': True}
+                mapping = get_youtube_mapping(id_cancion)
+                print("mapping",mapping)
+                if not mapping:
+                    #Busco las canciones en YT
+                    result_data = query_YT(nombre_cancion+' '+nombre_artista, auth_headerYT)
+
+                    if result_data['success']:
+                        # print("lista resultado: ",result_data['listaResultado'])
+                        first_result = result_data['listaResultado'][0]
+                        print("primer resultado: ",first_result)
+                        print(nombre_cancion, first_result['titulo'])
+
+                        similarity = jaccard_similarity(
+                            nombre_cancion, first_result['titulo'])
+
+                        if similarity > 0.5:
+                            mapping = {'spotify_id': id_cancion,
+                                    'youtube_id': first_result['idVideo'],
+                                    'similarity': similarity,
+                                    'q':nombre_cancion,
+                                    'search_platform':"youtube",
+                                    }
+                            set_mapping(mapping)
+                            # inserta en la lista creada en YT el video encontrado que corresponde con la cancion de Spotify
+                            insert_response = insert_item_YTList(idListaCreada, result_data['listaResultado'][0]['idVideo'], auth_headerYT)
+                        else:
+                            failed_migrations.append(cancion)
+                else : #cached mapping
+                    print("cached")
+                    insert_response = insert_item_YTList(idListaCreada, mapping['youtube_id'], auth_headerYT)
+
+
+            response_data = {'success': True, "failed_migrations":failed_migrations}
+
             return jsonify(response_data)
         else:
             # La solicitud no fue exitosa, maneja el error
-            return jsonify({'error': 'Error al consumir el servicio de spotify'}), 500
+            return jsonify({'error': 'Error al consumir el servicio de spotify', "spotyfy_error":responseDataListaSpotify}), 500
         
     else:
         # La solicitud no fue exitosa, maneja el error
@@ -374,7 +384,7 @@ def query_YT(busqueda, auth_header):
     
 def insert_item_YTList(playListId, videoId, auth_header):
     
-    headers = {'Authorization': "Bearer " + auth_header} 
+    headers = {'Authorization': auth_header} 
     key = app.config['GOOGLE_API_KEY']
 
     servicio_url = 'https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet&key=' + key
@@ -391,9 +401,8 @@ def insert_item_YTList(playListId, videoId, auth_header):
         }
     
     response = requests.post(servicio_url, json=data,headers=headers)
-
     if response.status_code == 200:
-        return {'success': True}
+        return {'success': True, response:response.json()}
     else:
         return {'success': False}
 

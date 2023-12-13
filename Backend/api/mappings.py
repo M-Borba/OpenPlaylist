@@ -1,35 +1,47 @@
 from flask import Blueprint, request, jsonify
-from db import get_youtube_mapping
+from db import get_youtube_mapping, get_all_mappings
 from flask import current_app as app
-
+import json
 from flask_cors import CORS
 # from mflix.api.utils import expect
 from datetime import datetime
 
 
-playlist_mapping_api = Blueprint(
-    'playlist_mapping_api', 'playlist_mapping_api', url_prefix='/api')
+song_mappings_api = Blueprint(
+    'song_mappings_api', 'song_mappings_api', url_prefix='/api')
 
-CORS(playlist_mapping_api)
+CORS(song_mappings_api)
 
 
-@playlist_mapping_api.route('/get-youtube-mapping/<id>', methods=['GET'])
-def api_get_playlist_by_id(spotify_id):
-    mapping = get_youtube_mapping(spotify_id)
-    if mapping is None:
+
+
+@song_mappings_api.route('/get-all-mappings/', methods=['GET'])
+def get_all_mappings_api():
+    mappings = get_all_mappings()
+    if mappings is None:
         return jsonify({
             "error": "Not found"
         }), 400
-    elif mapping == {}:
+    else:
+        return app.json_encoder().encode(mappings), 200
+
+
+
+
+@song_mappings_api.route('/get-youtube-mapping/<id>', methods=['GET'])
+def api_get_playlist_by_id():
+    id = request.args.get('id')
+    mapping = get_youtube_mapping(id)
+    if mapping is None:
         return jsonify({
-            "error": "uncaught general exception"
+            "error": "Not found"
         }), 400
     else:
         return app.json_encoder().encode(mapping), 200
 
 
 
-# @playlist_mapping_api.route('/add-mapping', methods=["POST"])
+# @song_mappings_api.route('/add-mapping', methods=["POST"])
 # #@jwt_required
 # def api_post_mapping():
 #     """

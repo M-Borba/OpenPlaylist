@@ -7,7 +7,7 @@ import './App.css'
 import { fetchProfile, getSpotifyPlaylistsItems as getSpotifyPlaylistItems, getUsersPlaylists, loginSpotify, testingEndpoint } from './Pages/ExportPlaylist/SpotifyUtils';
 import { useState } from 'react';
 import { useEffect } from 'react';
-import { getYoutubePlaylistItems, loginYoutube } from './Pages/ExportPlaylist/YouTubeUtils';
+import { getYoutubePlaylistItems, loginYoutube, transformSpotifytoYoutube } from './Pages/ExportPlaylist/YouTubeUtils';
 
 function App() {
  //TODO CONSIDER ADDING PAYED ADDS https://adsense.google.com/start/?subid=uy-en-ha-ads-bk-a-search!o3
@@ -49,7 +49,7 @@ function App() {
     }
   };
 
-  const fetchYoutubeData = async (yt_data:any) => {
+  const fetchYoutubePlaylists = async (yt_data:any) => {
     try {
       const youtubePlaylsitsResponse = await getYoutubePlaylistItems(yt_data.access_token,yt_data.channel_id)
       console.log("youtubePlaylsits",youtubePlaylsitsResponse)
@@ -62,11 +62,17 @@ function App() {
     }
   };
 
+  const handleSpotifytoYoutube= (response:any)=>{ 
+    console.log("response--",response.failed_migrations)
+    if(response.failed_migrations && response.failed_migrations.length>0){
+      alert("Failed to export some songs:\n "+response.failed_migrations.map((song:any) =>song.nombreCancion+"\n"))
+    }
+    fetchYoutubePlaylists(youtubeUser)
+  }
+
 
 useEffect(() => {
  
-
-
 
  const urlParams = new URLSearchParams(window.location.search);
  const app = urlParams.get('app');
@@ -99,7 +105,7 @@ useEffect(() => {
   
   localStorage.setItem('youtube_data', JSON.stringify(youtube_data));
 
-  fetchYoutubeData(youtube_data)
+  fetchYoutubePlaylists(youtube_data)
  
  }
 
@@ -130,7 +136,10 @@ useEffect(() => {
         </button>
         </Link> :
         <div className="platform-container">
+          <button onClick={() => { localStorage.removeItem("youtube_data");loginYoutube()}}>reload credentials &#x21bb;</button>
+
           <div>
+
          <img className="rounded" src={youtubeUser?.user_image  || "./src/assets/UserIcon.svg"} /> <strong> {youtubeUser?.username}</strong>
          <p> Total playlists : {youtubePlaylists?.pageInfo?.totalResults}</p>
          </div>
@@ -138,23 +147,22 @@ useEffect(() => {
           {youtubePlaylists?.items?.map((playlist) =>(
             <li key={playlist.id}>
             <img className="rounded" src={playlist.snippet?.thumbnails?.default?.url || "./src/assets/PlaylistIcon.svg"}/>
-            <strong>{playlist.snippet?.title}  <a href={"https://www.youtube.com/playlist?list="+playlist.id}>🔗</a> </strong> <p> total:?</p>
+            <strong>{playlist.snippet?.title}  <a href={"https://www.youtube.com/playlist?list="+playlist.id}>🔗</a> </strong> 
+            {/* <p> total:?</p> */}
             <img className="exportBtn" src="./src/assets/export_icon.png" onClick={() => console.log("export")}/>
 
           </li>
           ))}
         </ol>
           </div>
-        }
-          {/* todo:delete testing button */}
-        <button onClick={() => testingEndpoint(spotifyUser.id)}  >
-         TESTING
-        </button>
+        } 
+
           {!spotifyUser ?  <Link to="#">
         <button onClick={() => loginSpotify()} >
           Link Spotify account
         </button>
         </Link> : <div className="platform-container">
+          <button onClick={() => { localStorage.removeItem("spotify_data");loginSpotify()}}>reload credentials &#x21bb;</button>
           <div>
          <img className="rounded" src={spotifyUser?.images?.length>0 && spotifyUser?.images[0] ? spotifyUser?.images[0].url : "./src/assets/UserIcon.svg"} /> <strong> {spotifyUser?.display_name}</strong>
          <p> Total playlists : {spotifyPlaylists?.total}</p>
@@ -162,9 +170,11 @@ useEffect(() => {
           <ol className="platform-list">
           {spotifyPlaylists?.items.map((playlist:any) =>(
             <li key={playlist.id}>
-                <img className="exportBtn" src="./src/assets/export_icon.png" style={{transform: "scaleX(-1)"}} onClick={() => console.log("export")}/>
+                <img className="exportBtn" src="./src/assets/export_icon.png" style={{transform: "scaleX(-1)"}} 
+                onClick={() => transformSpotifytoYoutube(playlist.id,playlist.name).then(handleSpotifytoYoutube)}/>
               <img className="rounded" src={playlist.images[0] ? playlist.images[0].url : "./src/assets/PlaylistIcon.svg"} onClick={ () => getSpotifyPlaylistItems(playlist.id).then(console.log)}/>
-            <strong>{playlist.name}  <a href={playlist.external_urls.spotify}>🔗</a> </strong> <p> total:{playlist.tracks?.total}</p>
+            <strong>{playlist.name}  <a href={playlist.external_urls.spotify}>🔗</a> </strong>
+             <p> total:{playlist.tracks?.total}</p>
           </li>
           ))}
         </ol>

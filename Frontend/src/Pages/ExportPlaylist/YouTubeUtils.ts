@@ -27,3 +27,25 @@
         }).then(response=>response.json());
     }catch(error){console.log(error)}
     }
+
+
+   export async function transformSpotifytoYoutube(spotifyPlaylistId: string ,playlistName: string ){//fromspotifyto
+    const spotify_access_token = JSON.parse(localStorage.getItem('spotify_data') || "").access_token;
+    const youtube_access_token = JSON.parse(localStorage.getItem('youtube_data') || "").access_token;
+    
+    try{
+        return fetch(import.meta.env.VITE_BACKEND_URL + '/fromSpotifytoYoutube/?idListaSpotify='+encodeURIComponent(spotifyPlaylistId)
+        +"&nombreListaSpotify="+encodeURIComponent(playlistName)
+        , {
+            method: "GET",
+            headers: {
+                'Content-Type': 'multipart/form-data',
+                'Access-Control-Allow-Origin': '*/*',
+                'AuthorizationSpotify':"Bearer " + spotify_access_token,
+                'AuthorizationYT':"Bearer " + youtube_access_token,
+            }
+        }).then(response=>response.json());
+        
+    }catch(error){console.log(error)}
+      
+  }

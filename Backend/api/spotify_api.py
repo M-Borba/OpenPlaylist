@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from api.utils import jaccard_similarity
 from db import get_youtube_mapping
 from flask import current_app as app, redirect
 import requests
@@ -24,17 +25,6 @@ spotify_api = Blueprint(
 CORS(spotify_api)
 
 
-def extract_alphanumeric_with_spaces(s):
-    return re.sub(r'[^a-zA-Z0-9\s]', '', s)
-
-
-def jaccard_similarity(word1, word2): # returns a float between 0 and 1
-    word1_alphanumeric = extract_alphanumeric_with_spaces(word1.lower())
-    word2_alphanumeric = extract_alphanumeric_with_spaces(word2.lower())
-    s1 = set(word1_alphanumeric)
-    s2 = set(word2_alphanumeric)
-    return float(len(s1.intersection(s2)) / len(s1.union(s2))) 
-
 
 def search_spotify_song(name, artist, auth):
     request = {
@@ -53,7 +43,7 @@ def search_spotify_song(name, artist, auth):
 
     return data['tracks']['items'][0]
 
-def get_spotify_playlist_items(playlist_id,auth):
+def get_spotify_playlist_items(playlist_id,auth): # TODO do not limit to only 100 songs
     request = {
         'url': f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks',
         'params': {'limit':100},
@@ -67,7 +57,7 @@ def get_spotify_playlist_items(playlist_id,auth):
     response = requests.get(
         request['url'], params=request['params'], headers=request['headers'])
     data = response.json()  # Parse the JSON response from the Spotify API
-
+    print("get_spotify_playlist_items",data)
     return data
 
 # Example to create:
