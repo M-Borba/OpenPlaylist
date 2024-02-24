@@ -54,17 +54,3 @@
   }
 
 
-  
-
-  export async function testingEndpoint(user_id: number){ //todo
-    const spotify_access_token = JSON.parse(localStorage.getItem('spotify_data') || "").access_token;
-    const youtube_access_token = JSON.parse(localStorage.getItem('youtube_data') || "").access_token;
-
-    const response = await fetch(import.meta.env.VITE_BACKEND_URL + '/testing/', {
-        method: "POST", 
-        headers: { Authorization: `Bearer ${spotify_access_token}`,'Content-Type': 'application/json;charset=UTF-8' },
-        body: JSON.stringify({user_id})
-    });
-    return response.json()
-      
-  }

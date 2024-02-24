@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 
 import './App.css'
-import { fetchProfile, getSpotifyPlaylistsItems as getSpotifyPlaylistItems, getUsersPlaylists, loginSpotify, testingEndpoint } from './Pages/ExportPlaylist/SpotifyUtils';
+import { fetchProfile, getSpotifyPlaylistsItems as getSpotifyPlaylistItems, getUsersPlaylists, loginSpotify } from './Pages/ExportPlaylist/SpotifyUtils';
 import { useState } from 'react';
 import { useEffect } from 'react';
 import { getYoutubePlaylistItems, loginYoutube, transformSpotifytoYoutube } from './Pages/ExportPlaylist/YouTubeUtils';
